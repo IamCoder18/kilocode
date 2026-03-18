@@ -252,7 +252,7 @@ const AgentBehaviourTab: Component = () => {
   // Validate new mode name
   const validateName = (name: string): string => {
     if (!name.trim()) return language.t("settings.agentBehaviour.createMode.nameRequired")
-    if (!/^[a-z0-9_-]+$/.test(name.trim())) return language.t("settings.agentBehaviour.createMode.nameInvalid")
+    if (!/^[a-z][a-z0-9-]*$/.test(name.trim())) return language.t("settings.agentBehaviour.createMode.nameInvalid")
     if (agentNames().includes(name.trim())) return language.t("settings.agentBehaviour.createMode.nameTaken")
     return ""
   }
@@ -613,82 +613,98 @@ const AgentBehaviourTab: Component = () => {
         </div>
 
         {/* Agents list - clickable to edit */}
-        <Card style={{ "margin-bottom": "12px" }}>
-          <For each={agentNames()}>
-            {(name, index) => {
-              const agent = () => session.agents().find((a) => a.name === name)
-              const isCustom = () => !agent()?.native
-              return (
-                <div
-                  style={{
-                    display: "flex",
-                    "align-items": "center",
-                    "justify-content": "space-between",
-                    padding: "8px 4px",
-                    "border-bottom": index() < agentNames().length - 1 ? "1px solid var(--border-weak-base)" : "none",
-                    "border-radius": "4px",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => startEdit(name)}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "var(--bg-hover-base, var(--vscode-list-hoverBackground))"
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent"
-                  }}
-                >
-                  <div style={{ flex: 1, "min-width": 0 }}>
-                    <div style={{ display: "flex", "align-items": "center", gap: "6px" }}>
-                      <div style={{ "font-weight": "500", "font-size": "13px" }}>{name}</div>
-                      <Show when={isCustom()}>
-                        <span
+        <Show
+          when={agentNames().length > 0}
+          fallback={
+            <Card style={{ "margin-bottom": "12px" }}>
+              <div
+                style={{
+                  "font-size": "12px",
+                  color: "var(--text-weak-base, var(--vscode-descriptionForeground))",
+                }}
+              >
+                {language.t("settings.agentBehaviour.noModesFound")}
+              </div>
+            </Card>
+          }
+        >
+          <Card style={{ "margin-bottom": "12px" }}>
+            <For each={agentNames()}>
+              {(name, index) => {
+                const agent = () => session.agents().find((a) => a.name === name)
+                const isCustom = () => !agent()?.native
+                return (
+                  <div
+                    style={{
+                      display: "flex",
+                      "align-items": "center",
+                      "justify-content": "space-between",
+                      padding: "8px 4px",
+                      "border-bottom": index() < agentNames().length - 1 ? "1px solid var(--border-weak-base)" : "none",
+                      "border-radius": "4px",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => startEdit(name)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--bg-hover-base, var(--vscode-list-hoverBackground))"
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent"
+                    }}
+                  >
+                    <div style={{ flex: 1, "min-width": 0 }}>
+                      <div style={{ display: "flex", "align-items": "center", gap: "6px" }}>
+                        <div style={{ "font-weight": "500", "font-size": "13px" }}>{name}</div>
+                        <Show when={isCustom()}>
+                          <span
+                            style={{
+                              "font-size": "10px",
+                              padding: "1px 5px",
+                              "border-radius": "3px",
+                              background: "var(--bg-subtle-base, var(--vscode-badge-background))",
+                              color: "var(--text-weak-base, var(--vscode-badge-foreground))",
+                            }}
+                          >
+                            custom
+                          </span>
+                        </Show>
+                      </div>
+                      <Show when={agent()?.description}>
+                        <div
                           style={{
-                            "font-size": "10px",
-                            padding: "1px 5px",
-                            "border-radius": "3px",
-                            background: "var(--bg-subtle-base, var(--vscode-badge-background))",
-                            color: "var(--text-weak-base, var(--vscode-badge-foreground))",
+                            "font-size": "11px",
+                            color: "var(--text-weak-base, var(--vscode-descriptionForeground))",
+                            "margin-top": "2px",
+                            overflow: "hidden",
+                            "text-overflow": "ellipsis",
+                            "white-space": "nowrap",
                           }}
                         >
-                          custom
-                        </span>
+                          {agent()!.description}
+                        </div>
                       </Show>
                     </div>
-                    <Show when={agent()?.description}>
-                      <div
-                        style={{
-                          "font-size": "11px",
-                          color: "var(--text-weak-base, var(--vscode-descriptionForeground))",
-                          "margin-top": "2px",
-                          overflow: "hidden",
-                          "text-overflow": "ellipsis",
-                          "white-space": "nowrap",
-                        }}
-                      >
-                        {agent()!.description}
-                      </div>
-                    </Show>
+                    <div style={{ display: "flex", "align-items": "center", gap: "4px" }}>
+                      <Show when={isCustom()}>
+                        <IconButton
+                          size="small"
+                          variant="ghost"
+                          icon="close"
+                          onClick={(e: MouseEvent) => {
+                            e.stopPropagation()
+                            const a = agent()
+                            if (a) confirmRemoveMode(a)
+                          }}
+                        />
+                      </Show>
+                      <IconButton size="small" variant="ghost" icon="chevron-right" />
+                    </div>
                   </div>
-                  <div style={{ display: "flex", "align-items": "center", gap: "4px" }}>
-                    <Show when={isCustom()}>
-                      <IconButton
-                        size="small"
-                        variant="ghost"
-                        icon="close"
-                        onClick={(e: MouseEvent) => {
-                          e.stopPropagation()
-                          const a = agent()
-                          if (a) confirmRemoveMode(a)
-                        }}
-                      />
-                    </Show>
-                    <IconButton size="small" variant="ghost" icon="chevron-right" />
-                  </div>
-                </div>
-              )
-            }}
-          </For>
-        </Card>
+                )
+              }}
+            </For>
+          </Card>
+        </Show>
       </div>
     )
   }

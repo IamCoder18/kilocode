@@ -1595,7 +1595,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     }
 
     try {
-      await this.client.global.config.update(
+      const { data: updated } = await this.client.global.config.update(
         {
           config: {
             agent: {
@@ -1609,6 +1609,9 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
         },
         { throwOnError: true },
       )
+
+      this.cachedConfigMessage = { type: "configLoaded", config: updated }
+      this.postMessage({ type: "configUpdated", config: updated })
 
       await this.disposeCliInstance("global")
       this.cachedAgentsMessage = null
@@ -1631,7 +1634,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     }
 
     try {
-      await this.client.global.config.update(
+      const { data: updated } = await this.client.global.config.update(
         {
           config: {
             agent: {
@@ -1641,6 +1644,9 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
         },
         { throwOnError: true },
       )
+
+      this.cachedConfigMessage = { type: "configLoaded", config: updated }
+      this.postMessage({ type: "configUpdated", config: updated })
 
       await this.disposeCliInstance("global")
       this.cachedAgentsMessage = null
