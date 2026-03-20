@@ -418,6 +418,11 @@ export interface WorkspaceDirectoryChangedMessage {
   directory: string
 }
 
+export interface LanguageChangedMessage {
+  type: "languageChanged"
+  locale: string
+}
+
 export interface ConnectionStateMessage {
   type: "connectionState"
   state: ConnectionState
@@ -1277,6 +1282,7 @@ export type ExtensionMessage =
   | ProviderDisconnectedMessage
   | ProviderActionErrorMessage
   | RecentsLoadedMessage
+  | LanguageChangedMessage
 
 // ============================================
 // Messages FROM webview TO extension
