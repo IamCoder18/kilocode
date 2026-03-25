@@ -324,6 +324,8 @@ export interface AgentConfig {
   prompt?: string
   description?: string
   mode?: "subagent" | "primary" | "all"
+  hidden?: boolean
+  disable?: boolean
   temperature?: number
   top_p?: number
   steps?: number

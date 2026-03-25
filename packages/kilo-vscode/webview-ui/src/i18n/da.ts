@@ -1045,6 +1045,12 @@ export const dict = {
   "settings.agentBehaviour.topP.description": "Nucleus-samplingparameter (0-1)",
   "settings.agentBehaviour.maxSteps.title": "Maks. trin",
   "settings.agentBehaviour.maxSteps.description": "Maksimale agentiterationer",
+  "settings.agentBehaviour.hidden.title": "Skjult",
+  "settings.agentBehaviour.hidden.description": "Skjul denne agent fra tilstandsvælgeren i chatinput",
+  "settings.agentBehaviour.disable.title": "Deaktiveret",
+  "settings.agentBehaviour.disable.description": "Deaktiver denne agent fuldstændigt — den vises ingen steder",
+  "settings.agentBehaviour.badge.hidden": "skjult",
+  "settings.agentBehaviour.badge.disabled": "deaktiveret",
   "settings.agentBehaviour.discoveredSkills": "Opdagede skills",
   "settings.agentBehaviour.noSkillsFound":
     "Ingen skills fundet. Tilføj skill-mappestier eller URL'er nedenfor for at gøre skills tilgængelige.",

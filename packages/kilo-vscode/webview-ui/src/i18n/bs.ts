@@ -1050,6 +1050,12 @@ export const dict = {
   "settings.agentBehaviour.topP.description": "Nucleus parametar uzorkovanja (0-1)",
   "settings.agentBehaviour.maxSteps.title": "Maks. koraci",
   "settings.agentBehaviour.maxSteps.description": "Maksimalne iteracije agenta",
+  "settings.agentBehaviour.hidden.title": "Skriveno",
+  "settings.agentBehaviour.hidden.description": "Sakrij ovog agenta iz prebacivača modova u unosu chata",
+  "settings.agentBehaviour.disable.title": "Onemogućeno",
+  "settings.agentBehaviour.disable.description": "Potpuno onemogući ovog agenta — neće se pojaviti nigdje",
+  "settings.agentBehaviour.badge.hidden": "skriveno",
+  "settings.agentBehaviour.badge.disabled": "onemogućeno",
   "settings.agentBehaviour.discoveredSkills": "Otkrivene vještine",
   "settings.agentBehaviour.noSkillsFound":
     "Nisu pronađene vještine. Dodajte putanje mapa ili URL-ove ispod kako biste učinili vještine dostupnim.",

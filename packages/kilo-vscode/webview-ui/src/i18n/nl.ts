@@ -1055,6 +1055,12 @@ export const dict = {
   "settings.agentBehaviour.topP.description": "Nucleus sampling parameter (0-1)",
   "settings.agentBehaviour.maxSteps.title": "Max Stappen",
   "settings.agentBehaviour.maxSteps.description": "Maximale agent iteraties",
+  "settings.agentBehaviour.hidden.title": "Verborgen",
+  "settings.agentBehaviour.hidden.description": "Verberg deze agent uit de modusschakelaar in de chatinvoer",
+  "settings.agentBehaviour.disable.title": "Uitgeschakeld",
+  "settings.agentBehaviour.disable.description": "Schakel deze agent volledig uit — deze verschijnt nergens",
+  "settings.agentBehaviour.badge.hidden": "verborgen",
+  "settings.agentBehaviour.badge.disabled": "uitgeschakeld",
   "settings.agentBehaviour.discoveredSkills": "Ontdekte Skills",
   "settings.agentBehaviour.noSkillsFound":
     "Geen skills ontdekt. Voeg hieronder skill mappaden of URL's toe om skills beschikbaar te maken.",

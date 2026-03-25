@@ -1037,6 +1037,12 @@ export const dict = {
   "settings.agentBehaviour.topP.description": "معامل أخذ العينات النووي (0-1)",
   "settings.agentBehaviour.maxSteps.title": "الحد الأقصى للخطوات",
   "settings.agentBehaviour.maxSteps.description": "الحد الأقصى لتكرارات الوكيل",
+  "settings.agentBehaviour.hidden.title": "مخفي",
+  "settings.agentBehaviour.hidden.description": "إخفاء هذا الوكيل من مبدل الأوضاع في إدخال الدردشة",
+  "settings.agentBehaviour.disable.title": "معطل",
+  "settings.agentBehaviour.disable.description": "تعطيل هذا الوكيل بالكامل — لن يظهر في أي مكان",
+  "settings.agentBehaviour.badge.hidden": "مخفي",
+  "settings.agentBehaviour.badge.disabled": "معطل",
   "settings.agentBehaviour.discoveredSkills": "المهارات المكتشفة",
   "settings.agentBehaviour.noSkillsFound":
     "لم يتم العثور على مهارات. أضف مسارات مجلدات أو عناوين URL أدناه لإتاحة المهارات.",

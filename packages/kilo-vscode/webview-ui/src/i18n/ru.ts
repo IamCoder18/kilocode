@@ -1051,6 +1051,12 @@ export const dict = {
   "settings.agentBehaviour.topP.description": "Параметр nucleus-сэмплирования (0-1)",
   "settings.agentBehaviour.maxSteps.title": "Макс. шагов",
   "settings.agentBehaviour.maxSteps.description": "Максимальное число итераций агента",
+  "settings.agentBehaviour.hidden.title": "Скрытый",
+  "settings.agentBehaviour.hidden.description": "Скрыть этого агента из переключателя режимов в поле ввода чата",
+  "settings.agentBehaviour.disable.title": "Отключён",
+  "settings.agentBehaviour.disable.description": "Полностью отключить этого агента — он не будет отображаться нигде",
+  "settings.agentBehaviour.badge.hidden": "скрытый",
+  "settings.agentBehaviour.badge.disabled": "отключён",
   "settings.agentBehaviour.discoveredSkills": "Обнаруженные навыки",
   "settings.agentBehaviour.noSkillsFound":
     "Навыки не обнаружены. Добавьте пути к папкам навыков или URL-адреса ниже, чтобы сделать навыки доступными.",

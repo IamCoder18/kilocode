@@ -1050,6 +1050,13 @@ export const dict = {
   "settings.agentBehaviour.topP.description": "Parâmetro de amostragem nucleus (0-1)",
   "settings.agentBehaviour.maxSteps.title": "Passos máximos",
   "settings.agentBehaviour.maxSteps.description": "Iterações máximas do agente",
+  "settings.agentBehaviour.hidden.title": "Oculto",
+  "settings.agentBehaviour.hidden.description": "Ocultar este agente do seletor de modos na entrada do chat",
+  "settings.agentBehaviour.disable.title": "Desativado",
+  "settings.agentBehaviour.disable.description":
+    "Desativar completamente este agente — ele não aparecerá em nenhum lugar",
+  "settings.agentBehaviour.badge.hidden": "oculto",
+  "settings.agentBehaviour.badge.disabled": "desativado",
   "settings.agentBehaviour.discoveredSkills": "Habilidades descobertas",
   "settings.agentBehaviour.noSkillsFound":
     "Nenhuma habilidade encontrada. Adicione caminhos de pastas ou URLs abaixo para disponibilizar habilidades.",

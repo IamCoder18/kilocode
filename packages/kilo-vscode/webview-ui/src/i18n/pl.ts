@@ -1048,6 +1048,12 @@ export const dict = {
   "settings.agentBehaviour.topP.description": "Parametr próbkowania nucleus (0-1)",
   "settings.agentBehaviour.maxSteps.title": "Maks. kroki",
   "settings.agentBehaviour.maxSteps.description": "Maksymalna liczba iteracji agenta",
+  "settings.agentBehaviour.hidden.title": "Ukryty",
+  "settings.agentBehaviour.hidden.description": "Ukryj tego agenta z przełącznika trybów w polu czatu",
+  "settings.agentBehaviour.disable.title": "Wyłączony",
+  "settings.agentBehaviour.disable.description": "Całkowicie wyłącz tego agenta — nie pojawi się nigdzie",
+  "settings.agentBehaviour.badge.hidden": "ukryty",
+  "settings.agentBehaviour.badge.disabled": "wyłączony",
   "settings.agentBehaviour.discoveredSkills": "Wykryte umiejętności",
   "settings.agentBehaviour.noSkillsFound":
     "Nie znaleziono umiejętności. Dodaj ścieżki folderów lub adresy URL poniżej, aby udostępnić umiejętności.",

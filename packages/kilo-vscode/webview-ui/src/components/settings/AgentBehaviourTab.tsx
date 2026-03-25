@@ -296,6 +296,9 @@ const AgentBehaviourTab: Component = () => {
               {(name, index) => {
                 const agent = () => session.agents().find((a) => a.name === name)
                 const isCustom = () => !agent()?.native
+                const agentCfg = () => config().agent?.[name] ?? {}
+                const disabled = () => agentCfg().disable ?? false
+                const hidden = () => agentCfg().hidden ?? false
                 return (
                   <div
                     style={{
@@ -306,6 +309,7 @@ const AgentBehaviourTab: Component = () => {
                       "border-bottom": index() < agentNames().length - 1 ? "1px solid var(--border-weak-base)" : "none",
                       "border-radius": "4px",
                       cursor: "pointer",
+                      opacity: disabled() ? "0.5" : "1",
                     }}
                     onClick={() => startEdit(name)}
                     onMouseEnter={(e) => {
@@ -329,6 +333,32 @@ const AgentBehaviourTab: Component = () => {
                             }}
                           >
                             custom
+                          </span>
+                        </Show>
+                        <Show when={hidden()}>
+                          <span
+                            style={{
+                              "font-size": "10px",
+                              padding: "1px 5px",
+                              "border-radius": "3px",
+                              background: "var(--bg-subtle-base, var(--vscode-badge-background))",
+                              color: "var(--text-weak-base, var(--vscode-badge-foreground))",
+                            }}
+                          >
+                            {language.t("settings.agentBehaviour.badge.hidden")}
+                          </span>
+                        </Show>
+                        <Show when={disabled()}>
+                          <span
+                            style={{
+                              "font-size": "10px",
+                              padding: "1px 5px",
+                              "border-radius": "3px",
+                              background: "var(--vscode-errorForeground, #f44)",
+                              color: "var(--vscode-errorForeground-foreground, #fff)",
+                            }}
+                          >
+                            {language.t("settings.agentBehaviour.badge.disabled")}
                           </span>
                         </Show>
                       </div>

@@ -1045,6 +1045,12 @@ export const dict = {
   "settings.agentBehaviour.topP.description": "核サンプリングパラメータ（0-1）",
   "settings.agentBehaviour.maxSteps.title": "最大ステップ数",
   "settings.agentBehaviour.maxSteps.description": "最大エージェント反復回数",
+  "settings.agentBehaviour.hidden.title": "非表示",
+  "settings.agentBehaviour.hidden.description": "チャット入力のモード切り替えからこのエージェントを非表示にする",
+  "settings.agentBehaviour.disable.title": "無効",
+  "settings.agentBehaviour.disable.description": "このエージェントを完全に無効にする — どこにも表示されなくなります",
+  "settings.agentBehaviour.badge.hidden": "非表示",
+  "settings.agentBehaviour.badge.disabled": "無効",
   "settings.agentBehaviour.discoveredSkills": "検出されたスキル",
   "settings.agentBehaviour.noSkillsFound":
     "スキルが見つかりません。スキルを利用可能にするには、以下にスキルフォルダパスまたはURLを追加してください。",

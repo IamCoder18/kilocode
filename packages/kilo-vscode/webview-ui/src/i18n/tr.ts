@@ -1054,6 +1054,12 @@ export const dict = {
   "settings.agentBehaviour.topP.description": "Çekirdek örnekleme parametresi (0-1)",
   "settings.agentBehaviour.maxSteps.title": "Maksimum Adım",
   "settings.agentBehaviour.maxSteps.description": "Maksimum ajanlık yinelemesi",
+  "settings.agentBehaviour.hidden.title": "Gizli",
+  "settings.agentBehaviour.hidden.description": "Bu ajanı sohbet girişindeki mod değiştiriciden gizle",
+  "settings.agentBehaviour.disable.title": "Devre dışı",
+  "settings.agentBehaviour.disable.description": "Bu ajanı tamamen devre dışı bırak — hiçbir yerde görünmeyecek",
+  "settings.agentBehaviour.badge.hidden": "gizli",
+  "settings.agentBehaviour.badge.disabled": "devre dışı",
   "settings.agentBehaviour.discoveredSkills": "Keşfedilen Beceriler",
   "settings.agentBehaviour.noSkillsFound":
     "Keşfedilen beceri yok. Becerileri kullanılabilir kılmak için aşağıya beceri klasör yolları veya URL'ler ekleyin.",

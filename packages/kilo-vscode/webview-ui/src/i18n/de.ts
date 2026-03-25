@@ -1063,6 +1063,12 @@ export const dict = {
   "settings.agentBehaviour.topP.description": "Nucleus-Sampling-Parameter (0-1)",
   "settings.agentBehaviour.maxSteps.title": "Max. Schritte",
   "settings.agentBehaviour.maxSteps.description": "Maximale Agent-Iterationen",
+  "settings.agentBehaviour.hidden.title": "Versteckt",
+  "settings.agentBehaviour.hidden.description": "Diesen Agent im Modus-Umschalter der Chat-Eingabe ausblenden",
+  "settings.agentBehaviour.disable.title": "Deaktiviert",
+  "settings.agentBehaviour.disable.description": "Diesen Agent vollständig deaktivieren — er wird nirgends angezeigt",
+  "settings.agentBehaviour.badge.hidden": "versteckt",
+  "settings.agentBehaviour.badge.disabled": "deaktiviert",
   "settings.agentBehaviour.discoveredSkills": "Erkannte Skills",
   "settings.agentBehaviour.noSkillsFound":
     "Keine Skills gefunden. Fügen Sie unten Skill-Ordnerpfade oder URLs hinzu, um Skills verfügbar zu machen.",
