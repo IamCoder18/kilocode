@@ -14,7 +14,7 @@ export namespace Snapshot {
   const log = Log.create({ service: "snapshot" })
   const hour = 60 * 60 * 1000
   const prune = "7.days"
-  const MAX_DIFF_SIZE = 256 * 1024 // kilocode_change
+  export const MAX_DIFF_SIZE = 256 * 1024 // kilocode_change
 
   export function init() {
     Scheduler.register({

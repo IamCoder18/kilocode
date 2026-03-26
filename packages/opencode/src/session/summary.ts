@@ -122,10 +122,11 @@ export namespace SessionSummary {
     async (input) => {
       const diffs = await Storage.read<Snapshot.FileDiff[]>(["session_diff", input.sessionID]).catch(() => [])
       // kilocode_change start — scrub oversized diffs from stored session_diff
-      const limit = 256 * 1024
       const next = diffs.map((item) => {
         const file = unquoteGitPath(item.file)
-        const oversized = Buffer.byteLength(item.before) > limit || Buffer.byteLength(item.after) > limit
+        const oversized =
+          Buffer.byteLength(item.before) > Snapshot.MAX_DIFF_SIZE ||
+          Buffer.byteLength(item.after) > Snapshot.MAX_DIFF_SIZE
         if (file === item.file && !oversized) return item
         return {
           ...item,
