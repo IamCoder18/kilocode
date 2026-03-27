@@ -239,6 +239,9 @@ export namespace Skill {
   )
 
   export async function remove(location: string) {
+    if (location === BUILTIN_LOCATION) {
+      throw new RemoveError({ location, message: "cannot remove built-in skill" })
+    }
     const resolved = path.resolve(location)
     const s = await state()
     const name = Object.keys(s.skills).find((k) => path.resolve(s.skills[k].location) === resolved)
