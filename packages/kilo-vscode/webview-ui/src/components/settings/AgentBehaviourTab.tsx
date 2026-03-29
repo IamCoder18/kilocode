@@ -404,6 +404,19 @@ const AgentBehaviourTab: Component = () => {
                             {language.t("settings.agentBehaviour.badge.disabled")}
                           </span>
                         </Show>
+                        <Show when={agent()?.deprecated}>
+                          <span
+                            style={{
+                              "font-size": "10px",
+                              padding: "1px 5px",
+                              "border-radius": "3px",
+                              background: "var(--vscode-editorWarning-foreground, #cca700)",
+                              color: "var(--vscode-editor-background, #1e1e1e)",
+                            }}
+                          >
+                            {language.t("settings.agentBehaviour.badge.deprecated")}
+                          </span>
+                        </Show>
                       </div>
                       <Show when={agent()?.description}>
                         <div

@@ -1940,6 +1940,7 @@ export type Agent = {
   mode: "subagent" | "primary" | "all"
   native?: boolean
   hidden?: boolean
+  deprecated?: boolean
   topP?: number
   temperature?: number
   color?: string

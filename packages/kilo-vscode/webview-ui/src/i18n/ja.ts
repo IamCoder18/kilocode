@@ -1075,6 +1075,7 @@ export const dict = {
   "settings.agentBehaviour.disable.description": "このエージェントを完全に無効にする — どこにも表示されなくなります",
   "settings.agentBehaviour.badge.hidden": "非表示",
   "settings.agentBehaviour.badge.disabled": "無効",
+  "settings.agentBehaviour.badge.deprecated": "deprecated",
   "settings.agentBehaviour.discoveredSkills": "検出されたスキル",
   "settings.agentBehaviour.noSkillsFound":
     "スキルが見つかりません。スキルを利用可能にするには、以下にスキルフォルダパスまたはURLを追加してください。",

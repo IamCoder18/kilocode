@@ -1077,6 +1077,7 @@ export const dict = {
   "settings.agentBehaviour.disable.description": "Fully disable this agent — it will not appear anywhere",
   "settings.agentBehaviour.badge.hidden": "hidden",
   "settings.agentBehaviour.badge.disabled": "disabled",
+  "settings.agentBehaviour.badge.deprecated": "deprecated",
   "settings.agentBehaviour.discoveredSkills": "Discovered Skills",
   "settings.agentBehaviour.noSkillsFound":
     "No skills discovered. Add skill folder paths or URLs below to make skills available.",

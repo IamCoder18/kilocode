@@ -132,7 +132,23 @@ export const ModeSwitcherBase: Component<ModeSwitcherBaseProps> = (props) => {
                   onClick={() => pick(agent.name)}
                   onFocus={() => setFocused(i())}
                 >
-                  <span class="mode-switcher-item-name">{formatAgentLabel(agent)}</span>
+                  <span class="mode-switcher-item-name">
+                    {formatAgentLabel(agent)}
+                    <Show when={agent.deprecated}>
+                      <span
+                        style={{
+                          "font-size": "10px",
+                          padding: "1px 5px",
+                          "border-radius": "3px",
+                          "margin-left": "4px",
+                          background: "var(--vscode-editorWarning-foreground, #cca700)",
+                          color: "var(--vscode-editor-background, #1e1e1e)",
+                        }}
+                      >
+                        deprecated
+                      </span>
+                    </Show>
+                  </span>
                   <Show when={agent.description}>
                     <span class="mode-switcher-item-desc">{agent.description}</span>
                   </Show>

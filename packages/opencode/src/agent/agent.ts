@@ -37,6 +37,7 @@ export namespace Agent {
       mode: z.enum(["subagent", "primary", "all"]),
       native: z.boolean().optional(),
       hidden: z.boolean().optional(),
+      deprecated: z.boolean().optional(),
       topP: z.number().optional(),
       temperature: z.number().optional(),
       color: z.string().optional(),
@@ -193,7 +194,8 @@ export namespace Agent {
       },
       orchestrator: {
         name: "orchestrator",
-        description: "Coordinate complex tasks by delegating to specialized agents in parallel.",
+        description: "Deprecated. Coordinate complex tasks by delegating to specialized agents in parallel.",
+        deprecated: true,
         prompt: PROMPT_ORCHESTRATOR,
         options: {},
         permission: PermissionNext.merge(

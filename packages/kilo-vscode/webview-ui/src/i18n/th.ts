@@ -1067,6 +1067,7 @@ export const dict = {
   "settings.agentBehaviour.disable.description": "ปิดใช้งานเอเจนต์นี้อย่างสมบูรณ์ — จะไม่ปรากฏที่ใดเลย",
   "settings.agentBehaviour.badge.hidden": "ซ่อน",
   "settings.agentBehaviour.badge.disabled": "ปิดใช้งาน",
+  "settings.agentBehaviour.badge.deprecated": "deprecated",
   "settings.agentBehaviour.discoveredSkills": "ทักษะที่ค้นพบ",
   "settings.agentBehaviour.noSkillsFound": "ไม่พบทักษะ เพิ่มเส้นทางโฟลเดอร์หรือ URL ด้านล่างเพื่อทำให้ทักษะพร้อมใช้งาน",
   "settings.agentBehaviour.availableModes": "โหมดกำหนดเองที่ใช้ได้",

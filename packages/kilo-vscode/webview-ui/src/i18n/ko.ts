@@ -1072,6 +1072,7 @@ export const dict = {
   "settings.agentBehaviour.disable.description": "이 에이전트를 완전히 비활성화 — 어디에도 표시되지 않습니다",
   "settings.agentBehaviour.badge.hidden": "숨김",
   "settings.agentBehaviour.badge.disabled": "비활성화됨",
+  "settings.agentBehaviour.badge.deprecated": "deprecated",
   "settings.agentBehaviour.discoveredSkills": "검색된 스킬",
   "settings.agentBehaviour.noSkillsFound":
     "스킬을 찾을 수 없습니다. 스킬을 사용하려면 아래에 스킬 폴더 경로 또는 URL을 추가하세요.",

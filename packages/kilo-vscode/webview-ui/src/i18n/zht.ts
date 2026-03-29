@@ -1059,6 +1059,7 @@ export const dict = {
   "settings.agentBehaviour.disable.description": "完全停用此 Agent — 它將不會出現在任何地方",
   "settings.agentBehaviour.badge.hidden": "隱藏",
   "settings.agentBehaviour.badge.disabled": "已停用",
+  "settings.agentBehaviour.badge.deprecated": "deprecated",
   "settings.agentBehaviour.discoveredSkills": "已發現的 Skill",
   "settings.agentBehaviour.noSkillsFound": "未發現任何 Skill。請在下方新增 Skill 資料夾路徑或 URL 以使 Skill 可用。",
   "settings.agentBehaviour.availableModes": "可用自訂模式",

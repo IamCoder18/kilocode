@@ -5042,6 +5042,15 @@
                                 "isFree": {
                                   "type": "boolean"
                                 },
+                                "ai_sdk_provider": {
+                                  "type": "string",
+                                  "enum": [
+                                    "anthropic",
+                                    "openai",
+                                    "openai-compatible",
+                                    "openrouter"
+                                  ]
+                                },
                                 "experimental": {
                                   "type": "boolean"
                                 },
@@ -5473,7 +5482,10 @@
                       "type": "boolean"
                     }
                   },
-                  "required": ["enabled", "connected"]
+                  "required": [
+                    "enabled",
+                    "connected"
+                  ]
                 }
               }
             }
@@ -5523,7 +5535,10 @@
                       "type": "boolean"
                     }
                   },
-                  "required": ["enabled", "connected"]
+                  "required": [
+                    "enabled",
+                    "connected"
+                  ]
                 }
               }
             }
@@ -5573,7 +5588,10 @@
                       "type": "boolean"
                     }
                   },
-                  "required": ["enabled", "connected"]
+                  "required": [
+                    "enabled",
+                    "connected"
+                  ]
                 }
               }
             }
@@ -6158,7 +6176,32 @@
                               },
                               "groups": {
                                 "type": "array",
-                                "items": {}
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "array",
+                                      "prefixItems": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "fileRegex": {
+                                              "type": "string"
+                                            },
+                                            "description": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
                               }
                             }
                           }
@@ -12659,6 +12702,15 @@
                 "isFree": {
                   "type": "boolean"
                 },
+                "ai_sdk_provider": {
+                  "type": "string",
+                  "enum": [
+                    "anthropic",
+                    "openai",
+                    "openai-compatible",
+                    "openrouter"
+                  ]
+                },
                 "experimental": {
                   "type": "boolean"
                 },
@@ -13740,6 +13792,15 @@
           },
           "isFree": {
             "type": "boolean"
+          },
+          "ai_sdk_provider": {
+            "type": "string",
+            "enum": [
+              "anthropic",
+              "openai",
+              "openai-compatible",
+              "openrouter"
+            ]
           }
         },
         "required": [
@@ -14771,6 +14832,9 @@
             "type": "boolean"
           },
           "hidden": {
+            "type": "boolean"
+          },
+          "deprecated": {
             "type": "boolean"
           },
           "topP": {

@@ -1075,6 +1075,7 @@ export const dict = {
   "settings.agentBehaviour.disable.description": "Deaktiver denne agent fuldstændigt — den vises ingen steder",
   "settings.agentBehaviour.badge.hidden": "skjult",
   "settings.agentBehaviour.badge.disabled": "deaktiveret",
+  "settings.agentBehaviour.badge.deprecated": "deprecated",
   "settings.agentBehaviour.discoveredSkills": "Opdagede skills",
   "settings.agentBehaviour.noSkillsFound":
     "Ingen skills fundet. Tilføj skill-mappestier eller URL'er nedenfor for at gøre skills tilgængelige.",

@@ -1078,6 +1078,7 @@ export const dict = {
   "settings.agentBehaviour.disable.description": "Deaktiver denne agenten fullstendig — den vises ikke noe sted",
   "settings.agentBehaviour.badge.hidden": "skjult",
   "settings.agentBehaviour.badge.disabled": "deaktivert",
+  "settings.agentBehaviour.badge.deprecated": "deprecated",
   "settings.agentBehaviour.discoveredSkills": "Oppdagede ferdigheter",
   "settings.agentBehaviour.noSkillsFound":
     "Ingen ferdigheter funnet. Legg til ferdighetsmappestier eller URLer nedenfor for å gjøre ferdigheter tilgjengelige.",

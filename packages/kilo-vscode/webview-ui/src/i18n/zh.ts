@@ -1057,6 +1057,7 @@ export const dict = {
   "settings.agentBehaviour.disable.description": "完全禁用此智能体 — 它将不会出现在任何地方",
   "settings.agentBehaviour.badge.hidden": "隐藏",
   "settings.agentBehaviour.badge.disabled": "已禁用",
+  "settings.agentBehaviour.badge.deprecated": "deprecated",
   "settings.agentBehaviour.discoveredSkills": "已发现的技能",
   "settings.agentBehaviour.noSkillsFound": "未发现任何技能。请在下方添加技能文件夹路径或 URL 以使技能可用。",
   "settings.agentBehaviour.availableModes": "可用自定义模式",
