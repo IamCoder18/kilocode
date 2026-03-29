@@ -8,16 +8,26 @@
   }
 
   [data-slot="text-part-copy-wrapper"] {
-    display: none;
-  }
-
-  [data-slot="text-part-copy-wrapper"][data-is-turn-copy] {
     display: flex;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
 
     [data-component="icon-button"] {
       width: 20px;
       height: 20px;
     }
+  }
+
+  &:hover [data-slot="text-part-copy-wrapper"],
+  &:focus-within [data-slot="text-part-copy-wrapper"] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  [data-slot="text-part-copy-wrapper"][data-is-turn-copy] {
+    opacity: 1;
+    pointer-events: auto;
   }
 }
 

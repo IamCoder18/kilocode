@@ -1152,7 +1152,9 @@ PART_MAPPING["compaction"] = function CompactionPartDisplay() {
 
 PART_MAPPING["text"] = function TextPartDisplay(props) {
   const data = useData()
+  const i18n = useI18n()
   const part = () => props.part as TextPart
+  const [copied, setCopied] = createSignal(false)
 
   const displayText = () => (part().text ?? "").trim()
   const throttledText = createThrottledValue(displayText)
@@ -1162,6 +1164,27 @@ PART_MAPPING["text"] = function TextPartDisplay(props) {
     if (props.showAssistantCopyPartID !== part().id) return
     return props.turnDiffSummary
   })
+
+  const isLastTextPart = createMemo(() => {
+    const last = (data.store.part?.[props.message.id] ?? [])
+      .filter((item): item is TextPart => item?.type === "text" && !!item.text?.trim())
+      .at(-1)
+    return last?.id === part().id
+  })
+  const showCopy = createMemo(() => {
+    if (props.message.role !== "assistant") return isLastTextPart()
+    if (props.showAssistantCopyPartID === null) return false
+    if (typeof props.showAssistantCopyPartID === "string") return props.showAssistantCopyPartID === part().id
+    return isLastTextPart()
+  })
+
+  const handleCopy = async () => {
+    const content = displayText()
+    if (!content) return
+    await navigator.clipboard.writeText(content)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   const handleMarkdownClick = (e: MouseEvent) => {
     if (!data.openFile) return
@@ -1196,6 +1219,25 @@ PART_MAPPING["text"] = function TextPartDisplay(props) {
       <div data-component="text-part">
         <div data-slot="text-part-body">
           <Markdown text={throttledText()} cacheKey={part().id} onClick={handleMarkdownClick} />
+        </div>
+        <div data-slot="text-part-copy-wrapper" data-is-turn-copy={showCopy() ? "" : undefined}>
+          <Tooltip
+            value={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyResponse")}
+            placement="top"
+            gutter={4}
+          >
+            <IconButton
+              icon={copied() ? "check" : "copy"}
+              size="normal"
+              variant="ghost"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(event) => {
+                event.stopPropagation()
+                handleCopy()
+              }}
+              aria-label={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyResponse")}
+            />
+          </Tooltip>
         </div>
         <Show when={summary()}>
           {(render) => (
