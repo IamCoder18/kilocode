@@ -8,7 +8,7 @@
   }
 
   [data-slot="text-part-copy-wrapper"] {
-    display: flex;
+    display: flex; justify-content: flex-end;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.15s ease;
