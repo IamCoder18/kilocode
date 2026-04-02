@@ -130,6 +130,7 @@ export namespace Session {
           additions: z.number(),
           deletions: z.number(),
           files: z.number(),
+          // kilocode_change start - lightweight diff summary (no file contents)
           diffs: z
             .array(
               z.object({
@@ -140,6 +141,7 @@ export namespace Session {
               }),
             )
             .optional(),
+          // kilocode_change end
         })
         .optional(),
       share: z
@@ -492,7 +494,7 @@ export namespace Session {
             summary_additions: input.summary?.additions,
             summary_deletions: input.summary?.deletions,
             summary_files: input.summary?.files,
-            summary_diffs: input.summary?.diffs ?? null,
+            summary_diffs: input.summary?.diffs ?? null, // kilocode_change
             time_updated: Date.now(),
           })
           .where(eq(SessionTable.id, input.sessionID))
