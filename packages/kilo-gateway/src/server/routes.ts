@@ -8,7 +8,7 @@
 import { fetchProfile, fetchBalance } from "../api/profile.js"
 import { fetchKilocodeNotifications, KilocodeNotificationSchema } from "../api/notifications.js"
 import { fetchOrganizationModes, clearModesCache } from "../api/modes.js"
-import { KILO_API_BASE, HEADER_FEATURE } from "../api/constants.js"
+import { KILO_API_BASE, HEADER_FEATURE, HEADER_ORGANIZATIONID } from "../api/constants.js"
 import { buildKiloHeaders } from "../headers.js"
 import type { ImportDeps, DrizzleDb } from "../cloud-sessions.js"
 import { fetchCloudSession, fetchCloudSessionForImport, importSessionToDb } from "../cloud-sessions.js"
@@ -536,12 +536,18 @@ export function createKiloRoutes(deps: KiloRoutesDeps) {
           const token = auth.type === "api" ? auth.key : auth.type === "oauth" ? auth.access : undefined
           if (!token) return c.json({ error: "No valid token found" }, 401)
 
-          const response = await fetch(`${KILO_API_BASE}/api/kiloclaw/status`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          })
+          // kilocode_change start - pass org context for org-scoped instances
+          const orgId = auth.type === "oauth" ? auth.accountId : undefined
+          const headers: Record<string, string> = {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          }
+          if (orgId) {
+            headers[HEADER_ORGANIZATIONID] = orgId
+          }
+          // kilocode_change end
+
+          const response = await fetch(`${KILO_API_BASE}/api/kiloclaw/status`, { headers })
 
           if (!response.ok) {
             const text = await response.text()
@@ -589,12 +595,18 @@ export function createKiloRoutes(deps: KiloRoutesDeps) {
           const token = auth.type === "api" ? auth.key : auth.type === "oauth" ? auth.access : undefined
           if (!token) return c.json({ error: "No valid token found" }, 401)
 
-          const response = await fetch(`${KILO_API_BASE}/api/kiloclaw/chat-credentials`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          })
+          // kilocode_change start - pass org context for org-scoped instances
+          const orgId = auth.type === "oauth" ? auth.accountId : undefined
+          const headers: Record<string, string> = {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          }
+          if (orgId) {
+            headers[HEADER_ORGANIZATIONID] = orgId
+          }
+          // kilocode_change end
+
+          const response = await fetch(`${KILO_API_BASE}/api/kiloclaw/chat-credentials`, { headers })
 
           if (!response.ok) {
             const text = await response.text()

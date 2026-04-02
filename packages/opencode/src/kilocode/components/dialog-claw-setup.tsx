@@ -13,9 +13,11 @@ import { useTheme } from "@tui/context/theme"
 import { useDialog } from "@tui/ui/dialog"
 import { Link } from "@tui/ui/link"
 
-export function DialogClawSetup() {
+export function DialogClawSetup(props: { orgId?: string | null }) {
   const { theme } = useTheme()
   const dialog = useDialog()
+
+  const url = props.orgId ? `https://app.kilo.ai/organizations/${props.orgId}/claw` : "https://app.kilo.ai/claw"
 
   useKeyboard((evt: any) => {
     if (evt.name === "return") {
@@ -56,7 +58,7 @@ export function DialogClawSetup() {
       <box flexDirection="row" justifyContent="flex-end" paddingBottom={1}>
         <box paddingLeft={3} paddingRight={3} backgroundColor={theme.primary} flexDirection="row">
           <text fg={theme.text}>{"🦀 "}</text>
-          <Link href="https://app.kilo.ai/claw" fg={theme.selectedListItemText}>
+          <Link href={url} fg={theme.selectedListItemText}>
             Try KiloClaw
           </Link>
         </box>

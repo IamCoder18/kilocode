@@ -52,13 +52,17 @@ export function registerKiloCommands(useSDK: () => UseSDK) {
       enabled: isKiloConnected(),
       hidden: !isKiloConnected(),
       onSelect: async () => {
-        // Check instance status first
-        const res = await sdk.client.kilo.claw.status().catch(() => null)
+        // Fetch profile (for org context) and instance status in parallel
+        const [profileRes, res] = await Promise.all([
+          sdk.client.kilo.profile().catch(() => null),
+          sdk.client.kilo.claw.status().catch(() => null),
+        ])
+        const orgId = profileRes?.data?.currentOrgId ?? null
         const status = res?.data as ClawStatus | undefined
 
         // No instance provisioned
         if (!status || !status.userId || res.error) {
-          dialog.replace(() => <DialogClawSetup />)
+          dialog.replace(() => <DialogClawSetup orgId={orgId} />)
           return
         }
 
@@ -67,7 +71,7 @@ export function registerKiloCommands(useSDK: () => UseSDK) {
 
         if (!creds?.data || creds.error) {
           // Instance exists but no chat credentials — needs upgrade
-          dialog.replace(() => <DialogClawUpgrade />)
+          dialog.replace(() => <DialogClawUpgrade orgId={orgId} />)
           return
         }
 
