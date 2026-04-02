@@ -1114,7 +1114,8 @@ export const dict = {
   "settings.agentBehaviour.editMode.prompt": "システムプロンプト",
   "settings.agentBehaviour.editMode.save": "完了",
   "settings.agentBehaviour.editMode.back": "リストに戻る",
-  "settings.agentBehaviour.editMode.native": "組み込みモード（読み取り専用の定義）",
+  "settings.agentBehaviour.editMode.native":
+    "これは組み込みモードです。基本定義は変更できませんが、以下でオーバーライドを設定できます。",
   "settings.agentBehaviour.editMode.promptOverride": "この組み込みモードのカスタムプロンプト上書き",
   "settings.agentBehaviour.removeMode.title": "モードを削除",
   "settings.agentBehaviour.removeMode.confirm":

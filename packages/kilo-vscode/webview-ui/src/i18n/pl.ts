@@ -1118,7 +1118,8 @@ export const dict = {
   "settings.agentBehaviour.editMode.prompt": "Prompt systemowy",
   "settings.agentBehaviour.editMode.save": "Gotowe",
   "settings.agentBehaviour.editMode.back": "Powrót do listy",
-  "settings.agentBehaviour.editMode.native": "Tryb wbudowany (definicja tylko do odczytu)",
+  "settings.agentBehaviour.editMode.native":
+    "To jest wbudowany tryb. Jego podstawowa definicja nie może zostać zmieniona, ale poniżej możesz skonfigurować nadpisania.",
   "settings.agentBehaviour.editMode.promptOverride": "Niestandardowe nadpisanie promptu dla tego wbudowanego trybu",
   "settings.agentBehaviour.removeMode.title": "Usuń tryb",
   "settings.agentBehaviour.removeMode.confirm":

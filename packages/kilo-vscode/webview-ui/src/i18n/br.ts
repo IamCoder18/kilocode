@@ -1121,7 +1121,8 @@ export const dict = {
   "settings.agentBehaviour.editMode.prompt": "Prompt do Sistema",
   "settings.agentBehaviour.editMode.save": "Concluído",
   "settings.agentBehaviour.editMode.back": "Voltar à lista",
-  "settings.agentBehaviour.editMode.native": "Modo integrado (definição somente leitura)",
+  "settings.agentBehaviour.editMode.native":
+    "Este é um modo embutido. Sua definição base não pode ser alterada, mas você pode configurar as sobrescritas abaixo.",
   "settings.agentBehaviour.editMode.promptOverride": "Substituição de prompt personalizado para este modo integrado",
   "settings.agentBehaviour.removeMode.title": "Remover modo",
   "settings.agentBehaviour.removeMode.confirm":

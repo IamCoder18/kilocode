@@ -1091,7 +1091,7 @@ export const dict = {
   "settings.agentBehaviour.editMode.prompt": "系统提示",
   "settings.agentBehaviour.editMode.save": "完成",
   "settings.agentBehaviour.editMode.back": "返回列表",
-  "settings.agentBehaviour.editMode.native": "内置模式（只读定义）",
+  "settings.agentBehaviour.editMode.native": "这是一个内置模式。它的基础定义无法更改，但您可以在下方配置覆盖项。",
   "settings.agentBehaviour.editMode.promptOverride": "此内置模式的自定义提示覆盖",
   "settings.agentBehaviour.removeMode.title": "移除模式",
   "settings.agentBehaviour.removeMode.confirm": '移除模式 "{{name}}" 吗？这将通过更新配置来禁用该模式。',

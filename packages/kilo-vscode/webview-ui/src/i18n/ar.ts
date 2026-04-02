@@ -1102,7 +1102,8 @@ export const dict = {
   "settings.agentBehaviour.editMode.prompt": "موجه النظام",
   "settings.agentBehaviour.editMode.save": "تم",
   "settings.agentBehaviour.editMode.back": "العودة إلى القائمة",
-  "settings.agentBehaviour.editMode.native": "وضع مدمج (تعريف للقراءة فقط)",
+  "settings.agentBehaviour.editMode.native":
+    "هذا وضع مضمن. لا يمكن تغيير تعريفه الأساسي، ولكن يمكنك تكوين التجاوزات أدناه.",
   "settings.agentBehaviour.editMode.promptOverride": "تجاوز موجه مخصص لهذا الوضع المدمج",
   "settings.agentBehaviour.removeMode.title": "إزالة الوضع",
   "settings.agentBehaviour.removeMode.confirm":

@@ -1138,7 +1138,8 @@ export const dict = {
   "settings.agentBehaviour.editMode.prompt": "Prompt système",
   "settings.agentBehaviour.editMode.save": "Terminé",
   "settings.agentBehaviour.editMode.back": "Retour à la liste",
-  "settings.agentBehaviour.editMode.native": "Mode intégré (définition en lecture seule)",
+  "settings.agentBehaviour.editMode.native":
+    "Il s'agit d'un mode intégré. Sa définition de base ne peut pas être modifiée, mais vous pouvez configurer des surcharges ci-dessous.",
   "settings.agentBehaviour.editMode.promptOverride": "Remplacement de prompt personnalisé pour ce mode intégré",
   "settings.agentBehaviour.removeMode.title": "Supprimer le mode",
   "settings.agentBehaviour.removeMode.confirm":

@@ -1115,7 +1115,8 @@ export const dict = {
   "settings.agentBehaviour.editMode.prompt": "Systemprompt",
   "settings.agentBehaviour.editMode.save": "Ferdig",
   "settings.agentBehaviour.editMode.back": "Tilbake til listen",
-  "settings.agentBehaviour.editMode.native": "Innebygd modus (skrivebeskyttet definisjon)",
+  "settings.agentBehaviour.editMode.native":
+    "Dette er en innebygd modus. Grunndefinisjonen kan ikke endres, men du kan konfigurere overstyringer nedenfor.",
   "settings.agentBehaviour.editMode.promptOverride": "Tilpasset prompt-overstyring for denne innebygde modusen",
   "settings.agentBehaviour.removeMode.title": "Fjern modus",
   "settings.agentBehaviour.removeMode.confirm":

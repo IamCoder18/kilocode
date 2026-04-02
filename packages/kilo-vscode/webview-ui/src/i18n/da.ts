@@ -1112,7 +1112,8 @@ export const dict = {
   "settings.agentBehaviour.editMode.prompt": "Systemprompt",
   "settings.agentBehaviour.editMode.save": "Færdig",
   "settings.agentBehaviour.editMode.back": "Tilbage til listen",
-  "settings.agentBehaviour.editMode.native": "Indbygget tilstand (skrivebeskyttet definition)",
+  "settings.agentBehaviour.editMode.native":
+    "Dette er en indbygget tilstand. Dens grundlæggende definition kan ikke ændres, men du kan konfigurere tilsidesættelser nedenfor.",
   "settings.agentBehaviour.editMode.promptOverride": "Tilpasset prompt-tilsidesættelse for denne indbyggede tilstand",
   "settings.agentBehaviour.removeMode.title": "Fjern tilstand",
   "settings.agentBehaviour.removeMode.confirm":

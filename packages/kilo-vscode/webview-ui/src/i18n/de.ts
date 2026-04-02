@@ -1133,7 +1133,8 @@ export const dict = {
   "settings.agentBehaviour.editMode.prompt": "System-Prompt",
   "settings.agentBehaviour.editMode.save": "Fertig",
   "settings.agentBehaviour.editMode.back": "Zurück zur Liste",
-  "settings.agentBehaviour.editMode.native": "Eingebauter Modus (schreibgeschützte Definition)",
+  "settings.agentBehaviour.editMode.native":
+    "Dies ist ein integrierter Modus. Seine Basisdefinition kann nicht geändert werden, aber Sie können unten Überschreibungen konfigurieren.",
   "settings.agentBehaviour.editMode.promptOverride":
     "Benutzerdefinierte Prompt-Überschreibung für diesen eingebauten Modus",
   "settings.agentBehaviour.removeMode.title": "Modus entfernen",

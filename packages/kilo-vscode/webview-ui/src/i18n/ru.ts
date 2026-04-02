@@ -1120,7 +1120,8 @@ export const dict = {
   "settings.agentBehaviour.editMode.prompt": "Системный промпт",
   "settings.agentBehaviour.editMode.save": "Готово",
   "settings.agentBehaviour.editMode.back": "Вернуться к списку",
-  "settings.agentBehaviour.editMode.native": "Встроенный режим (определение только для чтения)",
+  "settings.agentBehaviour.editMode.native":
+    "Это встроенный режим. Его базовое определение нельзя изменить, но вы можете настроить переопределения ниже.",
   "settings.agentBehaviour.editMode.promptOverride":
     "Пользовательское переопределение промпта для этого встроенного режима",
   "settings.agentBehaviour.removeMode.title": "Удалить режим",

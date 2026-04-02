@@ -1119,7 +1119,8 @@ export const dict = {
   "settings.agentBehaviour.editMode.prompt": "Sistemski prompt",
   "settings.agentBehaviour.editMode.save": "Gotovo",
   "settings.agentBehaviour.editMode.back": "Nazad na listu",
-  "settings.agentBehaviour.editMode.native": "Ugrađeni mod (definicija samo za čitanje)",
+  "settings.agentBehaviour.editMode.native":
+    "Ovo je ugrađeni način rada. Njegova osnovna definicija ne može se mijenjati, ali ispod možete konfigurirati nadjačavanja.",
   "settings.agentBehaviour.editMode.promptOverride": "Prilagođeno nadjačavanje prompta za ovaj ugrađeni mod",
   "settings.agentBehaviour.removeMode.title": "Ukloni mod",
   "settings.agentBehaviour.removeMode.confirm":
