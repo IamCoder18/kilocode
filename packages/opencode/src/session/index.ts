@@ -130,7 +130,16 @@ export namespace Session {
           additions: z.number(),
           deletions: z.number(),
           files: z.number(),
-          diffs: Snapshot.FileDiff.array().optional(),
+          diffs: z
+            .array(
+              z.object({
+                file: z.string(),
+                additions: z.number(),
+                deletions: z.number(),
+                status: z.enum(["added", "deleted", "modified"]).optional(),
+              }),
+            )
+            .optional(),
         })
         .optional(),
       share: z

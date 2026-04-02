@@ -25,7 +25,9 @@ export const SessionTable = sqliteTable(
     summary_additions: integer(),
     summary_deletions: integer(),
     summary_files: integer(),
-    summary_diffs: text({ mode: "json" }).$type<Snapshot.FileDiff[]>(),
+    summary_diffs: text({ mode: "json" }).$type<
+      { file: string; additions: number; deletions: number; status?: "added" | "deleted" | "modified" }[]
+    >(),
     revert: text({ mode: "json" }).$type<{ messageID: string; partID?: string; snapshot?: string; diff?: string }>(),
     permission: text({ mode: "json" }).$type<PermissionNext.Ruleset>(),
     ...Timestamps,

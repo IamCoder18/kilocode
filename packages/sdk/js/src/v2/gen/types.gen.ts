@@ -833,7 +833,12 @@ export type Session = {
     additions: number
     deletions: number
     files: number
-    diffs?: Array<FileDiff>
+    diffs?: Array<{
+      file: string
+      additions: number
+      deletions: number
+      status?: "added" | "deleted" | "modified"
+    }>
   }
   share?: {
     url: string
@@ -1749,7 +1754,12 @@ export type GlobalSession = {
     additions: number
     deletions: number
     files: number
-    diffs?: Array<FileDiff>
+    diffs?: Array<{
+      file: string
+      additions: number
+      deletions: number
+      status?: "added" | "deleted" | "modified"
+    }>
   }
   share?: {
     url: string

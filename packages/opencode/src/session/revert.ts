@@ -71,6 +71,14 @@ export namespace SessionRevert {
         sessionID: input.sessionID,
         diff: diffs,
       })
+      // Strip full file contents before persisting to DB — the webview
+      // RevertBanner only needs file, additions, deletions, status.
+      const summaryDiffs = diffs.map((d) => ({
+        file: d.file,
+        additions: d.additions,
+        deletions: d.deletions,
+        status: d.status,
+      }))
       return Session.setRevert({
         sessionID: input.sessionID,
         revert,
@@ -78,7 +86,7 @@ export namespace SessionRevert {
           additions: diffs.reduce((sum, x) => sum + x.additions, 0),
           deletions: diffs.reduce((sum, x) => sum + x.deletions, 0),
           files: diffs.length,
-          diffs,
+          diffs: summaryDiffs,
         },
       })
     }
