@@ -39,6 +39,7 @@ import { MarketplaceService } from "./services/marketplace"
 import { resolveProjectDirectory } from "./project-directory"
 import { getBusySessionCount, seedSessionStatuses } from "./session-status"
 import { slimPart, slimParts } from "./kilo-provider/slim-metadata"
+import { sendOsNotification } from "./util/notify"
 import { matchFollowup, recordFollowup, type Followup } from "./kilo-provider/followup-session"
 // legacy-migration start
 import {
@@ -127,6 +128,10 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
   private syncedChildSessions: Set<string> = new Set()
   /** Tracks the latest status for each session, used to warn before destructive config operations. */
   private sessionStatusMap = new Map<string, SessionStatus["type"]>()
+  /** Sessions that were in "busy" state — used to detect busy→idle transitions for notifications. */
+  private busySessions = new Set<string>()
+  /** Last known VS Code window focus state — used to decide whether to show OS notifications. */
+  private lastFocusState = vscode.window.state.focused
   /** Per-session directory overrides (e.g., worktree paths registered by AgentManagerProvider). */
   private sessionDirectories = new Map<string, string>()
   /** Project ID for the current workspace, used to filter out sessions from other repositories. */
@@ -138,6 +143,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
   private pendingSessionRefresh = false
   private unsubscribeEvent: (() => void) | null = null
   private unsubscribeState: (() => void) | null = null
+  private unsubscribeFocus: vscode.Disposable | null = null
   /** Cached legacy migration data so migrate() doesn't re-read from disk/SecretStorage. */ // legacy-migration
   private cachedLegacyData: import("./legacy-migration/legacy-types").LegacyMigrationData | null = null // legacy-migration
   /** Guard to prevent checkAndShowMigrationWizard running concurrently. */ // legacy-migration
@@ -993,6 +999,8 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     // Clean up any existing subscriptions (e.g., sidebar re-shown)
     this.unsubscribeEvent?.()
     this.unsubscribeState?.()
+    this.unsubscribeFocus?.dispose()
+    this.unsubscribeFocus = null
     this.unsubscribeNotificationDismiss?.()
     this.unsubscribeLanguageChange?.()
     this.unsubscribeProfileChange?.()
@@ -1057,6 +1065,11 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
             })
           }
         }
+      })
+
+      // Track VS Code window focus state for OS notification decisions
+      this.unsubscribeFocus = vscode.window.onDidChangeWindowState((state) => {
+        this.lastFocusState = state.focused
       })
 
       // Subscribe to notification dismiss broadcast from other KiloProvider instances
@@ -2032,6 +2045,18 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
   }
 
   /**
+   * Send a native OS notification when VS Code is not focused and the relevant setting is enabled.
+   * Uses platform-specific commands (osascript/notify-send/PowerShell) instead of VS Code's
+   * built-in notification system, which only shows in-app toasts.
+   */
+  private notifyIfNotFocused(setting: "agent" | "permissions" | "errors", title: string, message?: string): void {
+    const config = vscode.workspace.getConfiguration("kilo-code.new.notifications")
+    if (!config.get<boolean>(setting, true)) return
+    if (this.lastFocusState) return
+    void sendOsNotification(title, message ?? title)
+  }
+
+  /**
    * Handle config update request from the webview.
    * Applies a partial config update via the global config endpoint, then pushes
    * the full merged config back to the webview.
@@ -2594,7 +2619,14 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     // busy-session warning on Save.
     if (event.type === "session.status") {
       const sid = event.properties.sessionID
-      this.sessionStatusMap.set(sid, event.properties.status.type)
+      const status = event.properties.status.type
+      this.sessionStatusMap.set(sid, status)
+      if (status === "busy") {
+        this.busySessions.add(sid)
+      } else if (status === "idle" && this.busySessions.has(sid) && this.trackedSessionIds.has(sid)) {
+        this.busySessions.delete(sid)
+        this.notifyIfNotFocused("agent", "Agent task completed")
+      }
       const msg = mapSSEEventToWebviewMessage(event, sid)
       if (msg) this.postMessage(msg)
       return
@@ -2648,6 +2680,20 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     if (event.type === "session.updated" && this.currentSession?.id === event.properties.info.id) {
       this.currentSession = event.properties.info
       this.contextSessionID = event.properties.info.id
+    }
+
+    // OS notifications for events that need user attention
+    if (event.type === "permission.asked") {
+      const tool = event.properties.permission ?? event.properties.tool ?? "tool"
+      this.notifyIfNotFocused("permissions", `Permission required: ${tool}`)
+    }
+    if (event.type === "question.asked") {
+      const questions = event.properties.questions as Array<{ question: string }> | undefined
+      this.notifyIfNotFocused("permissions", "Agent Question", questions?.[0]?.question)
+    }
+    if (event.type === "session.error") {
+      const err = event.properties.error as { message?: string } | undefined
+      this.notifyIfNotFocused("errors", `Session error: ${err?.message ?? "Unknown error"}`)
     }
 
     const msg = mapSSEEventToWebviewMessage(event, sessionID)
@@ -2976,6 +3022,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     this.statsPoller?.stop()
     this.unsubscribeEvent?.()
     this.unsubscribeState?.()
+    this.unsubscribeFocus?.dispose()
     this.unsubscribeNotificationDismiss?.()
     this.unsubscribeLanguageChange?.()
     this.unsubscribeProfileChange?.()
@@ -2988,6 +3035,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     this.syncedChildSessions.clear()
     this.sessionDirectories.clear()
     this.sessionStatusMap.clear()
+    this.busySessions.clear()
     this.ignoreController?.dispose()
     this.chatAutocomplete?.dispose()
     this.marketplace?.dispose()
