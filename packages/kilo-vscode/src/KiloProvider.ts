@@ -40,6 +40,7 @@ import { resolveProjectDirectory } from "./project-directory"
 import { getBusySessionCount, seedSessionStatuses } from "./session-status"
 import { slimPart, slimParts } from "./kilo-provider/slim-metadata"
 import { sendOsNotification } from "./util/notify"
+import { playSound, resolveSoundId } from "./util/sound"
 import { matchFollowup, recordFollowup, type Followup } from "./kilo-provider/followup-session"
 // legacy-migration start
 import {
@@ -2053,6 +2054,14 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     const config = vscode.workspace.getConfiguration("kilo-code.new.notifications")
     if (!config.get<boolean>(setting, true)) return
     if (this.lastFocusState) return
+
+    const soundConfig = vscode.workspace.getConfiguration("kilo-code.new.sounds")
+    const soundSetting = soundConfig.get<string>(setting, "default")
+    const soundId = resolveSoundId(soundSetting, setting)
+    if (soundId) {
+      void playSound(soundId)
+    }
+
     void sendOsNotification(title, message ?? title)
   }
 
