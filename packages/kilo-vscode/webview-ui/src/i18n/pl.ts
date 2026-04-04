@@ -944,6 +944,9 @@ export const dict = {
   "session.status.retry": "Ponawianie…",
   "session.status.retrying": "Ponawiam próbę ({{ attempt }})… {{ message }}",
   "session.status.working": "Pracuję…",
+  "session.turn.completed.seconds": "Pracowano przez {{ seconds }}s",
+  "session.turn.completed.minutes": "Pracowano przez {{ minutes }}min",
+  "session.turn.completed.hours": "Pracowano przez {{ hours }}h {{ minutes }}min",
 
   "dialog.model.noProviders": "Brak dostawców",
 

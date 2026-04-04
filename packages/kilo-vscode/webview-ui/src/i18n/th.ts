@@ -935,6 +935,9 @@ export const dict = {
   "session.status.retry": "กำลังลองใหม่…",
   "session.status.retrying": "กำลังลองใหม่ (ครั้งที่ {{ attempt }})… {{ message }}",
   "session.status.working": "กำลังทำงาน...",
+  "session.turn.completed.seconds": "ทำงานเป็นเวลา {{ seconds }}วินาที",
+  "session.turn.completed.minutes": "ทำงานเป็นเวลา {{ minutes }}นาที",
+  "session.turn.completed.hours": "ทำงานเป็นเวลา {{ hours }}ชม. {{ minutes }}นาที",
 
   "dialog.model.noProviders": "ไม่มีผู้ให้บริการ",
 

@@ -2249,6 +2249,16 @@
   opacity: 0.7;
 }
 
+/* Turn Completion Indicator */
+.turn-completion-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 12px;
+  color: var(--vscode-charts-green);
+}
+
 /* Session List (inside History View) */
 .session-list {
   display: flex;

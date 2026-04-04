@@ -943,6 +943,9 @@ export const dict = {
   "session.status.retry": "Yeniden deneniyor…",
   "session.status.retrying": "Yeniden deneniyor (deneme {{ attempt }})… {{ message }}",
   "session.status.working": "Çalışıyor...",
+  "session.turn.completed.seconds": "{{ seconds }}s çalıştı",
+  "session.turn.completed.minutes": "{{ minutes }}dk çalıştı",
+  "session.turn.completed.hours": "{{ hours }}sa {{ minutes }}dk çalıştı",
 
   "dialog.model.noProviders": "Sağlayıcı yok",
 

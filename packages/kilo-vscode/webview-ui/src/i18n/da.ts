@@ -940,6 +940,9 @@ export const dict = {
   "session.status.retry": "Prøver igen…",
   "session.status.retrying": "Prøver igen (forsøg {{ attempt }})… {{ message }}",
   "session.status.working": "Arbejder…",
+  "session.turn.completed.seconds": "Arbejdede i {{ seconds }}s",
+  "session.turn.completed.minutes": "Arbejdede i {{ minutes }}min",
+  "session.turn.completed.hours": "Arbejdede i {{ hours }}t {{ minutes }}min",
 
   "dialog.model.noProviders": "Ingen udbydere",
 

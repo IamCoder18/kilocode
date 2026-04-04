@@ -148,11 +148,14 @@ export const MessageList: Component<MessageListProps> = (props) => {
                   return index() > active
                 })
 
+                const isLast = createMemo(() => index() === userMessages().length - 1)
+
                 return (
                   <VscodeSessionTurn
                     sessionID={session.currentSessionID() ?? ""}
                     messageID={msg.id}
                     queued={queued()}
+                    isLast={isLast()}
                   />
                 )
               }}
