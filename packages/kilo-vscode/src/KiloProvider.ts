@@ -187,6 +187,8 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
   private cachedMcpStatusMessage: unknown = null
   /** Ref-count of in-flight handleUpdateConfig calls; prevents fetchAndSendConfig from sending stale data */
   private pending = 0
+  /** Buffered VS Code settings writes, flushed on flushSettings or discarded on discardSettings */
+  private pendingVSCodeSettings: Array<{ key: string; value: unknown }> = []
   private configWarningsShown = false
   /** Cached notificationsLoaded payload */
   private cachedNotificationsMessage: unknown = null
@@ -932,7 +934,9 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
           await this.handleRenameSession(message.sessionID, message.title)
           break
         case "updateSetting":
-          await this.handleUpdateSetting(message.key, message.value)
+        case "flushSettings":
+        case "discardSettings":
+          this.handleSettingsMessage(message as { type: string; key?: string; value?: unknown })
           break
         case "requestBrowserSettings":
           this.sendBrowserSettings()
@@ -1074,8 +1078,6 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
         case "fetchMarketplaceData": {
           const workspace = this.getProjectDirectory(this.currentSession?.id)
           const mp = this.getMarketplace()
-          // Fetch skills from CLI backend (authoritative source) so the
-          // marketplace doesn't need to duplicate the CLI's skill scanning.
           const skills = await this.fetchCliSkills()
           const data = await mp.fetchData(workspace, skills)
           this.postMessage({ type: "marketplaceData", ...data })
@@ -1114,6 +1116,20 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
       }
     })
     this.webviewMessageDisposable = watchFontSizeConfig((msg) => this.postMessage(msg), this.webviewMessageDisposable)
+  }
+
+  private handleSettingsMessage(message: { type: string; key?: string; value?: unknown }): void {
+    switch (message.type) {
+      case "updateSetting":
+        void this.handleUpdateSetting(message.key!, message.value)
+        break
+      case "flushSettings":
+        void this.flushVSCodeSettings()
+        break
+      case "discardSettings":
+        this.discardVSCodeSettings()
+        break
+    }
   }
 
   private openExternal(url: unknown): void {
@@ -2916,12 +2932,44 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
   /**
    * Handle a generic setting update from the webview.
    * The key uses dot notation relative to `kilo-code.new` (e.g. "browserAutomation.enabled").
+   *
+   * Autocomplete settings are buffered so they participate in the draft/save/discard
+   * lifecycle alongside CLI config changes. All other settings are written immediately
+   * to preserve their existing behavior.
    */
   private async handleUpdateSetting(key: string, value: unknown): Promise<void> {
     const { section, leaf } = buildSettingPath(key)
-    if (section === "autocomplete" && !validAutocompleteSetting(leaf, value)) return
-    const config = vscode.workspace.getConfiguration(`kilo-code.new${section ? `.${section}` : ""}`)
-    await config.update(leaf, value, vscode.ConfigurationTarget.Global)
+    if (section === "autocomplete") {
+      if (!validAutocompleteSetting(leaf, value)) return
+      // Buffer autocomplete writes — they'll be flushed on flushSettings or
+      // discarded on discardSettings, keeping them in sync with the webview draft.
+      // Check if the key already exists in the buffer and overwrite it rather than pushing a duplicate
+      const existing = this.pendingVSCodeSettings.findIndex(e => e.key === key)
+      if (existing >= 0) this.pendingVSCodeSettings[existing] = { key, value }
+      else this.pendingVSCodeSettings.push({ key, value })
+    } else {
+      const config = vscode.workspace.getConfiguration(`kilo-code.new${section ? `.${section}` : ""}`)
+      await config.update(leaf, value, vscode.ConfigurationTarget.Global)
+    }
+  }
+
+  /** Flush all buffered VS Code settings writes to disk. Called after updateSetting messages. */
+  private async flushVSCodeSettings(): Promise<void> {
+    for (const { key, value } of this.pendingVSCodeSettings) {
+      try {
+        const { section, leaf } = buildSettingPath(key)
+        const config = vscode.workspace.getConfiguration(`kilo-code.new${section ? `.${section}` : ""}`)
+        await config.update(leaf, value, vscode.ConfigurationTarget.Global)
+      } catch (err) {
+        console.error("[Kilo New] Failed to update VS Code setting:", key, err)
+      }
+    }
+    this.pendingVSCodeSettings = []
+  }
+
+  /** Discard any buffered VS Code settings writes. Called on discard. */
+  private discardVSCodeSettings(): void {
+    this.pendingVSCodeSettings = []
   }
 
   /**

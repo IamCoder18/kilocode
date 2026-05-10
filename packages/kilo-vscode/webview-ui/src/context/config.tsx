@@ -78,6 +78,15 @@ export const ConfigProvider: ParentComponent = (props) => {
         "autocomplete.enableChatAutocomplete": message.settings.enableChatAutocomplete,
         "autocomplete.model": message.settings.model,
       }
+      // If this confirms a settings-only save (no CLI config drafts pending),
+      // it serves as the save confirmation — clear the saving flag.
+      if (saving() && !has(draft() as Record<string, unknown>) && !has(globalDraft() as Record<string, unknown>)) {
+        setSaving(false)
+        setSaveError(null)
+      }
+      // Always update savedSettings to reflect what's actually in VS Config.
+      // When saving is still in-flight (e.g. CLI config also being saved),
+      // the pending settingsDraft entries will re-apply on top via the merge below.
       setSavedSettings((prev) => ({ ...prev, ...patch }))
       setSettings((prev) => ({ ...prev, ...patch, ...settingsDraft() }))
       return
@@ -207,11 +216,14 @@ export const ConfigProvider: ParentComponent = (props) => {
       for (const [key, value] of Object.entries(pending)) {
         vscode.postMessage({ type: "updateSetting", key, value })
       }
+      // Signal the extension to flush buffered VS Code settings to disk.
+      vscode.postMessage({ type: "flushSettings" })
       setSavedSettings((prev) => ({ ...prev, ...pending }))
       setSettingsDraft({})
     }
     if (!configDirty && !globalDirty) {
-      setSaving(false)
+      // Settings-only save — exit; flush confirmation will arrive via
+      // autocompleteSettingsLoaded which will clear saving().
       return
     }
     // Split so per-project settings (e.g. commit_message.prompt) land in the
@@ -223,6 +235,9 @@ export const ConfigProvider: ParentComponent = (props) => {
   }
 
   function discardConfig() {
+    // Tell the extension to drop any buffered VS Code settings writes
+    // so the extension-side state stays in sync with the webview discard.
+    vscode.postMessage({ type: "discardSettings" })
     setConfig(saved())
     setGlobalConfig(savedGlobal())
     setDraft({})

@@ -351,6 +351,22 @@ export interface UpdateSettingRequest {
   value: unknown
 }
 
+/**
+ * Signal the extension to flush all buffered VS Code settings writes to disk.
+ * Sent from webview during saveConfig() after updateSetting messages.
+ */
+export interface FlushSettingsMessage {
+  type: "flushSettings"
+}
+
+/**
+ * Signal the extension to discard any buffered VS Code settings writes.
+ * Sent from webview during discardConfig().
+ */
+export interface DiscardSettingsMessage {
+  type: "discardSettings"
+}
+
 export interface RequestTimelineSettingMessage {
   type: "requestTimelineSetting"
 }
@@ -1162,6 +1178,8 @@ export type WebviewMessage =
   | AgentManagerOpenSessionsMessage
   | RequestAutoApproveStateMessage
   | ToggleAutoApproveMessage
+  | FlushSettingsMessage
+  | DiscardSettingsMessage
   | FetchMarketplaceDataMessage
   | FilterMarketplaceItemsMessage
   | InstallMarketplaceItemMessage
