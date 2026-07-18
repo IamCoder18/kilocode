@@ -69,6 +69,7 @@ import { PermissionPrompt } from "./permission"
 import { QuestionPrompt } from "./question"
 // kilocode_change start
 import { Suggest } from "@/kilocode/suggestion/tui/render"
+import { processCarriageReturns } from "@/kilocode/cli/cmd/tui/util/process-carriage-returns" // kilocode_change
 import { SuggestPrompt } from "@/kilocode/suggestion/tui/prompt"
 import { NetworkPrompt } from "./network"
 import { TerminalPrompt } from "./terminal"
@@ -2389,7 +2390,8 @@ function Shell(props: ToolProps) {
   const pathFormatter = usePathFormatter()
   const ctx = use()
   const isRunning = createMemo(() => props.part.state.status === "running")
-  const output = createMemo(() => stripAnsi(stringValue(props.metadata.output)?.trim() ?? ""))
+  // kilocode_change - convert \r progress frames to \n so streaming numbers display
+  const output = createMemo(() => stripAnsi(processCarriageReturns(stringValue(props.metadata.output)?.trim() ?? "")))
   const [expanded, setExpanded] = createSignal(false)
   const maxLines = 10
   const maxChars = createMemo(() => maxLines * Math.max(20, ctx.width - 6))
