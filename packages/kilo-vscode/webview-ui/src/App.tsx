@@ -28,6 +28,7 @@ import { ChatView } from "./components/chat"
 import { SidebarEmptyState } from "./components/chat/SidebarEmptyState"
 import { registerExpandedTaskTool } from "./components/chat/TaskToolExpanded"
 import { registerVscodeToolOverrides } from "./components/chat/VscodeToolOverrides"
+import { registerWorldTool } from "./components/chat/WorldToolRenderer"
 import { SpeechToTextPrewarm } from "./components/speech-to-text/SpeechToTextPrewarm"
 
 // Override the upstream "task" tool renderer with the fully-expanded version
@@ -35,6 +36,8 @@ import { SpeechToTextPrewarm } from "./components/speech-to-text/SpeechToTextPre
 registerExpandedTaskTool()
 // Apply VS Code sidebar preferences to other tools (e.g. bash expanded by default).
 registerVscodeToolOverrides()
+// Render the world tool's screenshot attachments inline.
+registerWorldTool()
 import HistoryView from "./components/history/HistoryView"
 import { MigrationWizard } from "./components/migration" // legacy-migration
 import { NotificationsProvider } from "./context/notifications"

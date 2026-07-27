@@ -6,8 +6,10 @@ import {
   copyKiloSandboxWorker,
   copySandboxResources,
   copyTreeSitterResources,
+  copyWorldDaemon,
   hasKiloSandboxWorker,
   hasTreeSitterResources,
+  hasWorldDaemon,
   kiloSandboxWorkerForBinary,
   sanitizeSandboxResources,
 } from "../src/services/cli-backend/cli-resources"
@@ -35,6 +37,7 @@ const coreDir = join(packagesDir, "core")
 const gatewayDir = join(packagesDir, "kilo-gateway")
 const indexingDir = join(packagesDir, "kilo-indexing")
 const sandboxDir = join(packagesDir, "kilo-sandbox")
+const worldDir = join(packagesDir, "kilo-world")
 
 const targetBinDir = join(kiloVscodeDir, "bin")
 const binName = process.platform === "win32" ? "kilo.exe" : "kilo"
@@ -52,7 +55,8 @@ async function cliSourceHash(): Promise<string | null> {
     const gatewayResult = await $`git log -1 --format=%H -- .`.cwd(gatewayDir).quiet()
     const indexingResult = await $`git log -1 --format=%H -- .`.cwd(indexingDir).quiet()
     const sandboxResult = await $`git log -1 --format=%H -- .`.cwd(sandboxDir).quiet()
-    return `${opencodeResult.text().trim()}-${coreResult.text().trim()}-${gatewayResult.text().trim()}-${indexingResult.text().trim()}-${sandboxResult.text().trim()}`
+    const worldResult = await $`git log -1 --format=%H -- .`.cwd(worldDir).quiet()
+    return `${opencodeResult.text().trim()}-${coreResult.text().trim()}-${gatewayResult.text().trim()}-${indexingResult.text().trim()}-${sandboxResult.text().trim()}-${worldResult.text().trim()}`
   } catch {
     return null
   }
@@ -65,12 +69,14 @@ async function isDirty(): Promise<boolean> {
     const gatewayResult = await $`git status --porcelain -- .`.cwd(gatewayDir).quiet()
     const indexingResult = await $`git status --porcelain -- .`.cwd(indexingDir).quiet()
     const sandboxResult = await $`git status --porcelain -- .`.cwd(sandboxDir).quiet()
+    const worldResult = await $`git status --porcelain -- .`.cwd(worldDir).quiet()
     return (
       opencodeResult.text().trim().length > 0 ||
       coreResult.text().trim().length > 0 ||
       gatewayResult.text().trim().length > 0 ||
       indexingResult.text().trim().length > 0 ||
-      sandboxResult.text().trim().length > 0
+      sandboxResult.text().trim().length > 0 ||
+      worldResult.text().trim().length > 0
     )
   } catch {
     return false
@@ -223,7 +229,7 @@ async function writeSourceWrapper() {
 async function main() {
   const targetFile = Bun.file(targetBinPath)
   const exists = await targetFile.exists()
-  const ready = exists && hasTreeSitterResources(targetBinPath) && hasKiloSandboxWorker(targetBinPath)
+  const ready = exists && hasTreeSitterResources(targetBinPath) && hasKiloSandboxWorker(targetBinPath) && hasWorldDaemon(targetBinPath)
 
   const stale = ready && !forceRebuild && (await isStale())
   const rebuild = forceRebuild || stale || !ready
@@ -265,6 +271,7 @@ async function main() {
   await copyTreeSitterResources(sourceBinPath, targetBinPath)
   await copySandboxResources(sourceBinPath, targetBinPath)
   await copyKiloSandboxWorker(sourceBinPath, targetBinPath)
+  await copyWorldDaemon(sourceBinPath, targetBinPath)
   chmodSync(targetBinPath, 0o755)
   await ensureLocalHelpers()
 

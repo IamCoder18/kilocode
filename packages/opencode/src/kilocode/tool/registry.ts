@@ -9,6 +9,7 @@ import { NotebookEditTool, NotebookExecuteTool, NotebookReadTool } from "./noteb
 import { MemoryRecallTool } from "./memory-recall"
 import { MemorySaveTool } from "./memory-save"
 import { NotifyUserTool } from "./notify-user"
+import { WorldTool } from "./world"
 import * as Tool from "../../tool/tool"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { Effect } from "effect"
@@ -80,14 +81,15 @@ export namespace KiloToolRegistry {
       // context here and injects it into the tool's init Effect.
       const sessions = yield* KiloSessions.Service
       const notify = yield* NotifyUserTool.pipe(Effect.provideService(KiloSessions.Service, sessions))
+      const world = yield* WorldTool
       if (!notebook)
-        return { codebase, recall, managerModels, memory, save, manager, process, image, terminal, notify }
+        return { codebase, recall, managerModels, memory, save, manager, process, image, terminal, notify, world }
       const tools = yield* Effect.all({
         notebookRead: NotebookReadTool,
         notebookEdit: NotebookEditTool,
         notebookExecute: NotebookExecuteTool,
       }).pipe(Effect.provideService(Notebook.Service, notebook))
-      return { codebase, recall, managerModels, memory, save, manager, process, image, terminal, notify, ...tools }
+      return { codebase, recall, managerModels, memory, save, manager, process, image, terminal, notify, world, ...tools }
     })
   }
 
@@ -105,6 +107,7 @@ export namespace KiloToolRegistry {
       image: Tool.Info
       terminal?: Tool.Info
       notify: Tool.Info
+      world: Tool.Info
       notebookRead?: Tool.Info
       notebookEdit?: Tool.Info
       notebookExecute?: Tool.Info
@@ -123,6 +126,7 @@ export namespace KiloToolRegistry {
         process: Tool.init(tools.process),
         image: Tool.init(tools.image),
         notify: Tool.init(tools.notify),
+        world: Tool.init(tools.world),
       })
       const terminal = tools.terminal ? yield* Tool.init(tools.terminal) : undefined
       const notebooks =
@@ -196,11 +200,12 @@ export namespace KiloToolRegistry {
       image: Tool.Def
       terminal?: Tool.Def
       notify: Tool.Def
+      world: Tool.Def
       notebookRead?: Tool.Def
       notebookEdit?: Tool.Def
       notebookExecute?: Tool.Def
     },
-    cfg: { experimental?: { codebase_search?: boolean; image_generation?: boolean; native_notebook_tools?: boolean } },
+    cfg: { experimental?: { codebase_search?: boolean; image_generation?: boolean; native_notebook_tools?: boolean; world_browser?: boolean } },
   ): Tool.Def[] {
     return [
       ...(cfg.experimental?.codebase_search === true ? [tools.codebase] : []),
@@ -211,6 +216,7 @@ export namespace KiloToolRegistry {
       tools.recall,
       ...(Flag.KILO_CLIENT === "cli" || Flag.KILO_CLIENT === "vscode" ? [tools.process] : []),
       ...(Flag.KILO_CLIENT === "cli" && tools.terminal ? [tools.terminal] : []),
+      ...(cfg.experimental?.world_browser !== false ? [tools.world] : []),
       // Agent Manager tools are useful only when the extension can create and display their sessions.
       ...(Flag.KILO_CLIENT === "vscode" ? [tools.managerModels, tools.manager] : []),
       ...(Flag.KILO_CLIENT === "vscode" &&

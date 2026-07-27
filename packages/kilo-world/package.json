@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@kilocode/world",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "description": "Browser-automation library backing the kilo world agent tool.",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./runner": "./src/core/browser/runner.ts",
+    "./types": "./src/types.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsgo --noEmit",
+    "build": "bun build src/daemon/entry.ts --target=node --outdir=dist --format=esm && bun run build:shebang",
+    "build:shebang": "node -e \"const fs=require('node:fs');const p='dist/entry.js';let s=fs.readFileSync(p,'utf8').replace(/^#!.*\\n/,'');fs.writeFileSync(p,'#!/usr/bin/env node\\n'+s);fs.chmodSync(p,0o755)\"",
+    "build:bun": "bun build src/daemon/entry.ts --target=bun --outdir=dist --format=esm",
+    "test": "bun test --timeout 30000"
+  },
+  "dependencies": {
+    "chromium-bidi": "^12.0.0",
+    "playwright": "1.61.1"
+  },
+  "devDependencies": {
+    "@tsconfig/bun": "catalog:",
+    "@types/bun": "catalog:",
+    "@types/node": "catalog:",
+    "@typescript/native-preview": "catalog:",
+    "typescript": "catalog:"
+  }
+}

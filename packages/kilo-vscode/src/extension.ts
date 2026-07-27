@@ -16,7 +16,6 @@ import { registerAutocompleteProvider } from "./services/autocomplete"
 import { ensureBackendForAutocomplete } from "./services/autocomplete/ensure-backend"
 import { AutocompleteServiceManager } from "./services/autocomplete/AutocompleteServiceManager"
 import { AttentionService } from "./services/attention"
-import { BrowserAutomationService } from "./services/browser-automation"
 import { TelemetryEventName, TelemetryProxy } from "./services/telemetry"
 import { registerCommitMessageService } from "./services/commit-message"
 import { registerCodeActions, registerTerminalActions, KiloCodeActionProvider } from "./services/code-actions"
@@ -60,9 +59,8 @@ export function activate(context: vscode.ExtensionContext) {
     void context.workspaceState.update(RESTORE_KEY, restore)
   }
 
-  // Create browser automation service (manages Playwright MCP registration)
-  const browserAutomationService = new BrowserAutomationService(connectionService)
-  browserAutomationService.syncWithSettings()
+  // Create world diagnostics service (runs kilo world browser status / doctor)
+  const browserAutomationService: { dispose: () => void } | null = null
 
   // Create remote status service (one status bar item for all webviews)
   const remoteService = new RemoteStatusService()
@@ -73,7 +71,6 @@ export function activate(context: vscode.ExtensionContext) {
   // set remote service client, and reload autocomplete so it picks up the now-available backend connection.
   const unsubscribeStateChange = connectionService.onStateChange((state) => {
     if (state === "connected") {
-      browserAutomationService.reregisterIfEnabled()
       const config = connectionService.getServerConfig()
       if (config) {
         telemetry.configure(config.baseUrl, config.password)
@@ -578,7 +575,7 @@ export function activate(context: vscode.ExtensionContext) {
       shuttingDown = true
       unsubscribeStateChange()
       attention.dispose()
-      browserAutomationService.dispose()
+      ;(browserAutomationService as { dispose: () => void } | null)?.dispose?.()
       provider.dispose()
       notebookBridge.dispose()
       connectionService.dispose()

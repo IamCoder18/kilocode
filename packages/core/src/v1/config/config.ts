@@ -297,6 +297,10 @@ export const Info = Schema.Struct({
       openTelemetry: Schema.Boolean.pipe(Schema.optional, Schema.withDecodingDefault(Effect.succeed(true))).annotate({
         description: "Enable telemetry. Set to false to opt-out.",
       }),
+      world_browser: Schema.optional(Schema.Boolean).annotate({
+        description:
+          "Enable the world tool for browser automation. When enabled, a screenshot is automatically attached after every call.",
+      }),
       // kilocode_change end
       primary_tools: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
         description: "Tools that should only be available to primary agents.",

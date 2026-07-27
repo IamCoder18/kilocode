@@ -342,6 +342,7 @@ describe("kilocode tool registry indexing", () => {
       image: def("generate_image"),
       terminal: def("interactive_terminal"),
       notify: def("notify_user"),
+      world: def("world"),
       notebookRead: def("notebook_read"),
       notebookEdit: def("notebook_edit"),
       notebookExecute: def("notebook_execute"),
@@ -356,6 +357,7 @@ describe("kilocode tool registry indexing", () => {
         "recall",
         "background_process",
         "interactive_terminal",
+        "world",
         "notify_user",
       ])
       expect(KiloToolRegistry.extra(tools, { experimental: { codebase_search: true } }).map((tool) => tool.id)).toEqual(
@@ -367,6 +369,7 @@ describe("kilocode tool registry indexing", () => {
           "recall",
           "background_process",
           "interactive_terminal",
+          "world",
           "notify_user",
         ],
       )
@@ -383,6 +386,7 @@ describe("kilocode tool registry indexing", () => {
         "recall",
         "background_process",
         "interactive_terminal",
+        "world",
         "notify_user",
       ])
 
@@ -395,6 +399,7 @@ describe("kilocode tool registry indexing", () => {
           "kilo_memory_save",
           "recall",
           "background_process",
+          "world",
           "agent_manager_models",
           "agent_manager",
           "notify_user",
@@ -411,6 +416,7 @@ describe("kilocode tool registry indexing", () => {
         "kilo_memory_save",
         "recall",
         "background_process",
+        "world",
         "agent_manager_models",
         "agent_manager",
         "notebook_read",
@@ -423,6 +429,7 @@ describe("kilocode tool registry indexing", () => {
         "kilo_memory_save",
         "recall",
         "background_process",
+        "world",
         "agent_manager_models",
         "agent_manager",
         "notify_user",
@@ -434,6 +441,7 @@ describe("kilocode tool registry indexing", () => {
         "kilo_memory_recall",
         "kilo_memory_save",
         "recall",
+        "world",
         "notify_user",
       ])
 
@@ -443,6 +451,7 @@ describe("kilocode tool registry indexing", () => {
         "kilo_memory_recall",
         "kilo_memory_save",
         "recall",
+        "world",
         "notify_user",
       ])
 
@@ -452,6 +461,7 @@ describe("kilocode tool registry indexing", () => {
         "kilo_memory_recall",
         "kilo_memory_save",
         "recall",
+        "world",
         "notify_user",
       ])
     } finally {
