@@ -4,4 +4,4 @@
 "@kilocode/world": minor
 ---
 
-Add the `world` tool for persistent, permission-aware browser automation. Run its isolated browser daemon through the bundled Kilo runtime, use the configured Chromium installation without downloading a browser automatically, and expose browser enablement and headless mode in Kilo settings.
+Add the `world` tool for persistent, permission-aware browser automation. Run its isolated browser daemon with Node and Playwright's native browser protocol, use the configured Chromium installation without downloading a browser automatically, and expose browser enablement and headless mode in Kilo settings.

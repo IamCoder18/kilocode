@@ -1,4 +1,3 @@
-#!/usr/bin/env bun
 import { start } from "./runtime"
 
 start().catch((err: unknown) => {

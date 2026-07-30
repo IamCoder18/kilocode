@@ -5,14 +5,23 @@ import { join } from "node:path"
 import { chromium } from "playwright"
 import { DaemonClient, World } from "../src"
 import { DaemonServer } from "../src/daemon/server"
+import { WorldDaemon } from "../script/daemon"
 
 const session = `test-${process.pid}`
 const peer = `${session}-peer`
 const home = mkdtempSync(join(tmpdir(), "kilo-world-test-"))
+const daemon = join(home, WorldDaemon.filename)
 const config = World.currentConfig()
 const available = existsSync(chromium.executablePath())
+const env = {
+  daemon: process.env["KILO_WORLD_DAEMON_PATH"],
+  node: process.env["KILO_WORLD_NODE"],
+}
 
-beforeAll(() => {
+beforeAll(async () => {
+  await WorldDaemon.copy(await WorldDaemon.bundle(), home)
+  process.env["KILO_WORLD_DAEMON_PATH"] = daemon
+  process.env["KILO_WORLD_NODE"] = Bun.which("node") ?? "node"
   World.configure({ home })
 })
 
@@ -22,11 +31,27 @@ afterAll(async () => {
     waitFor(session, () => !DaemonServer.isRunning(session)),
     waitFor(peer, () => !DaemonServer.isRunning(peer)),
   ])
+  if (env.daemon === undefined) delete process.env["KILO_WORLD_DAEMON_PATH"]
+  else process.env["KILO_WORLD_DAEMON_PATH"] = env.daemon
+  if (env.node === undefined) delete process.env["KILO_WORLD_NODE"]
+  else process.env["KILO_WORLD_NODE"] = env.node
   World.configure(config)
   rmSync(home, { recursive: true, force: true })
 })
 
 describe("world daemon", () => {
+  test("reports invalid daemon and runtime overrides", async () => {
+    process.env["KILO_WORLD_DAEMON_PATH"] = join(home, "missing.js")
+    await expect(DaemonClient.ensureRunning(`${session}-missing`)).rejects.toThrow(
+      "KILO_WORLD_DAEMON_PATH does not exist",
+    )
+    process.env["KILO_WORLD_DAEMON_PATH"] = daemon
+
+    process.env["KILO_WORLD_NODE"] = join(home, "missing-node")
+    await expect(DaemonClient.ensureRunning(`${session}-runtime`)).rejects.toThrow("KILO_WORLD_NODE does not exist")
+    process.env["KILO_WORLD_NODE"] = Bun.which("node") ?? "node"
+  })
+
   test("deduplicates concurrent startup and serves authenticated requests", async () => {
     await Promise.all([
       DaemonClient.ensureRunning(session, { idleMs: 0 }),
@@ -58,10 +83,12 @@ describe("world daemon", () => {
     expect(result.results).toHaveLength(2)
     expect(result.results[0]?.data).toMatchObject({
       running: true,
+      runtime: "node",
       idleTimeoutMs: 0,
       idleTimeoutRemainingMs: 0,
     })
     expect(result.results[1]?.data).toMatchObject({ chromiumPid: null })
+    expect(await World.daemonStatus(session)).toMatchObject({ runtime: "node", runtimeVersion: expect.any(String) })
   })
 
   test.skipIf(!available)("isolates browser state and processes between sessions", async () => {
@@ -87,6 +114,12 @@ describe("world daemon", () => {
     ])
     expect(firstState.results[0]?.data).toEqual({ result: "First" })
     expect(secondState.results[0]?.data).toEqual({ result: "Second" })
+
+    const file = join(home, "daemon-browser.png")
+    const shot = await World.runForSession(session, `screenshot --out ${JSON.stringify(file)} --full --type png`)
+    expect(shot.ok).toBe(true)
+    expect(shot.results[0]?.screenshot).toMatchObject({ path: file, mime: "image/png" })
+    expect(statSync(file).size).toBeGreaterThan(0)
 
     expect(await DaemonClient.stop(peer)).toBe(true)
     await waitFor(peer, () => !DaemonServer.isRunning(peer))

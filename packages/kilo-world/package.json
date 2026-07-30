@@ -20,10 +20,13 @@
   ],
   "scripts": {
     "typecheck": "tsgo --noEmit",
-    "build": "bun build src/index.ts --target bun --outdir dist --entry-naming index.js",
-    "test": "bun test --timeout 30000"
+    "build": "bun build src/index.ts --target bun --outdir dist --entry-naming index.js && bun run build:daemon",
+    "build:daemon": "bun run script/build-daemon.ts",
+    "test": "bun test --timeout 30000",
+    "test:ci": "bunx playwright install chromium && mkdir -p .artifacts/unit && bun test --timeout 30000 --reporter=junit --reporter-outfile=.artifacts/unit/junit.xml"
   },
   "dependencies": {
+    "chromium-bidi": "^12.0.0",
     "playwright": "1.61.1"
   },
   "devDependencies": {

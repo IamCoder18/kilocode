@@ -180,6 +180,8 @@ export namespace DaemonServer {
     return {
       running: true,
       pid: process.pid,
+      runtime: typeof Bun === "undefined" ? "node" : "bun",
+      runtimeVersion: process.version,
       sessionID: process.env["KILO_WORLD_DAEMON_SESSION"] ?? currentSessionIDForActivity,
       uptimeMs: process.uptime() * 1000,
       idleTimeoutMs: currentIdleTimeoutMs,

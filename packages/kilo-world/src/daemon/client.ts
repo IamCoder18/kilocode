@@ -9,16 +9,43 @@ import { DaemonServer } from "./server"
 import { isHandshake, isResponse, type DaemonRequest, type DaemonResponse } from "./protocol"
 
 const SCRIPT_HEAD_TIMEOUT_MS = 30_000
+const DAEMON = "world-daemon.cjs"
 const starts = new Map<string, Promise<void>>()
 
-function findSourceEntry(): string {
+function root(): string {
   const here = dirname(fileURLToPath(import.meta.url))
-  return join(here, "entry.ts")
+  return join(here, "..", "..")
 }
 
-function compiled(): boolean {
-  if (typeof Bun === "undefined") return false
-  return Bun.main.startsWith("/$bunfs/") || /^[a-z]:\/~bun\//i.test(Bun.main)
+function paths(): string[] {
+  const override = process.env["KILO_WORLD_DAEMON_PATH"]
+  const argv = process.argv[1]
+  return [
+    override,
+    join(dirname(process.execPath), DAEMON),
+    argv ? join(dirname(argv), DAEMON) : undefined,
+    join(root(), "dist", DAEMON),
+  ].filter((item): item is string => Boolean(item))
+}
+
+function entry(): string {
+  const override = process.env["KILO_WORLD_DAEMON_PATH"]
+  if (override && !existsSync(override)) throw new Error(`KILO_WORLD_DAEMON_PATH does not exist: ${override}`)
+  const file = paths().find(existsSync)
+  if (file) return file
+  throw new Error(`kilo-world Node daemon not found; tried:\n${paths().map((item) => `  - ${item}`).join("\n")}`)
+}
+
+function runtime(): string {
+  const override = process.env["KILO_WORLD_NODE"]
+  if (override) return override
+  const name = process.platform === "win32" ? "node.exe" : "node"
+  const dir = dirname(process.execPath)
+  const bundled = [join(dir, "node-runtime", name), join(dir, name)].find(existsSync)
+  if (bundled) return bundled
+  if (typeof Bun !== "undefined") return Bun.which("node") ?? name
+  if (process.release.name === "node") return process.execPath
+  return name
 }
 
 export namespace DaemonClient {
@@ -61,27 +88,22 @@ export namespace DaemonClient {
   }
 
   async function launch(sessionID: string, opts: CallOptions & { idleMs?: number }): Promise<void> {
-    const embedded = compiled()
-    const bun = typeof Bun !== "undefined" ? Bun.which("bun") : null
+    const file = entry()
+    const bin = runtime()
+    if (process.env["KILO_WORLD_NODE"] && /[\\/]/.test(bin) && !existsSync(bin)) {
+      throw new Error(`KILO_WORLD_NODE does not exist: ${bin}`)
+    }
     const logFd = openSync(DaemonServer.logPath(sessionID), "a")
     const env: NodeJS.ProcessEnv = {
       ...process.env,
-      KILO_WORLD_DAEMON: "1",
       KILO_WORLD_DAEMON_SESSION: sessionID,
       KILO_WORLD_DAEMON_SILENT: "1",
       KILO_WORLD_PARENT_PID: String(process.pid),
       KILO_WORLD_HOME: getConfig().home,
       ...(opts.idleMs !== undefined ? { KILO_WORLD_DAEMON_IDLE_MS: String(opts.idleMs) } : {}),
     }
-    if (!embedded && !bun) {
-      closeSync(logFd)
-      throw new Error(
-        "cannot start the world daemon outside the compiled Kilo CLI because Bun is unavailable; install Bun for development.",
-      )
-    }
-    const bin = embedded ? process.execPath : bun!
     const args = [
-      ...(!embedded ? [findSourceEntry()] : []),
+      file,
       `--session=${sessionID}`,
       ...(opts.idleMs !== undefined ? [`--idle=${opts.idleMs}`] : []),
     ]
@@ -100,7 +122,11 @@ export namespace DaemonClient {
     const start = Date.now()
     while (Date.now() - start < SCRIPT_HEAD_TIMEOUT_MS) {
       if (opts.signal?.aborted) throw new Error("daemon startup aborted")
-      if (state.err) throw new Error(`failed to start kilo-world daemon: ${state.err.message}`)
+      if (state.err) {
+        throw new Error(
+          `failed to start kilo-world daemon with ${bin}: ${state.err.message}. Install Node or set KILO_WORLD_NODE to its executable.`,
+        )
+      }
       if (await ping(sessionID)) return
       await new Promise((r) => setTimeout(r, 50))
     }
@@ -263,6 +289,8 @@ export namespace DaemonClient {
     running: boolean
     pid?: number
     sessionID?: string
+    runtime?: "node" | "bun"
+    runtimeVersion?: string
     idleMs: number
     idleMsRemaining: number
   }
@@ -280,6 +308,8 @@ export namespace DaemonClient {
       const data = (resp.envelope ?? {}) as {
         pid?: number
         sessionID?: string
+        runtime?: "node" | "bun"
+        runtimeVersion?: string
         idleTimeoutMs?: number
         idleTimeoutRemainingMs?: number
       }
@@ -287,6 +317,8 @@ export namespace DaemonClient {
         running: true,
         ...(data.pid !== undefined ? { pid: data.pid } : {}),
         ...(data.sessionID ? { sessionID: data.sessionID } : {}),
+        ...(data.runtime ? { runtime: data.runtime } : {}),
+        ...(data.runtimeVersion ? { runtimeVersion: data.runtimeVersion } : {}),
         idleMs: data.idleTimeoutMs ?? 0,
         idleMsRemaining: data.idleTimeoutRemainingMs ?? 0,
       }
