@@ -1,15 +1,6 @@
 import type { ElementHandle, Page } from "playwright"
 import type { RefEntry, Snapshot } from "../../types"
 
-const PASSWORD_PATTERN = /password|passcode|secret|pin|otp|token|api[-_ ]?key/i
-const REDACTED = "[REDACTED]"
-
-function redact(name: string, role: string | undefined): string {
-  if (!name) return name
-  if (role !== "textbox" && role !== "searchbox" && role !== "combobox") return name
-  return PASSWORD_PATTERN.test(name) ? REDACTED : name
-}
-
 type WalkedNode = {
   ref: string
   role: string | null
@@ -183,14 +174,13 @@ export namespace Refs {
     const refs: RefEntry[] = []
     for (const node of value.nodes) {
       const ref = node.ref
-      const redacted = redact(node.name, node.role ?? undefined)
       const entry: RefEntry = {
         ref,
         role: node.role ?? "",
-        name: redacted,
+        name: node.name,
         depth: 0,
       }
-      const sel = buildSelector(node, redacted)
+      const sel = buildSelector(node)
       if (sel) entry.selector = sel
       refs.push(entry)
     }
@@ -201,7 +191,7 @@ export namespace Refs {
   }
 }
 
-function buildSelector(node: WalkedNode, _redactedName: string): string {
+function buildSelector(node: WalkedNode): string {
   return `[data-kilo-ref="${node.ref}"]`
 }
 

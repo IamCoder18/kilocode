@@ -150,7 +150,10 @@ export namespace Runner {
   export function probeChromium(): Promise<BrowserCapability["installation"]> {
     const executable = getConfig().browser.executablePath ?? chromium.executablePath()
     if (existsSync(executable)) return Promise.resolve({ state: "available", message: executable })
-    return Promise.resolve({ state: "missing", message: `Chromium executable not found at ${executable}` })
+    return Promise.resolve({
+      state: "missing",
+      message: `Chromium executable not found at ${executable}. Install with \`npx playwright install chromium\`.`,
+    })
   }
 
   export function activePage(live: Live): Page {

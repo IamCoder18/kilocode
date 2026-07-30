@@ -126,6 +126,7 @@ world({ script: "navigate --url https://example.com ; snapshot" })
 
 `world` remains permission-aware, validates writable screenshot paths, and is enabled through the existing experimental browser setting.
 Quoted script arguments preserve ordinary Windows path separators, so `screenshot --out "C:\\Users\\..."` writes to the requested absolute path after the tool-call JSON is decoded.
+Snapshots return accessible element names unchanged, including names containing password, secret, PIN, OTP, token, or API-key terms; the browser layer does not redact snapshot text or screenshots.
 
 ## 7. Session and lifecycle requirements
 

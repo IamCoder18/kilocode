@@ -25,6 +25,17 @@ describe.skipIf(!available)("browser commands", () => {
     expect(result.results[3]?.data).toEqual({ result: "two" })
   })
 
+  test("preserves sensitive-looking accessible names in snapshots", async () => {
+    const result = await World.run(
+      'navigate --url "data:text/html,<label for=pin>Security PIN</label><input id=pin placeholder=%27Enter API token%27>" ; snapshot',
+    )
+    expect(result.ok).toBe(true)
+    expect(result.results[1]?.refs).toEqual([expect.objectContaining({ role: "textbox", name: "Security PIN" })])
+    expect(result.results[1]?.data).toEqual(
+      expect.objectContaining({ snapshot: expect.stringContaining('"Security PIN"') }),
+    )
+  })
+
   test("tracks the active page while opening and closing tabs", async () => {
     const result = await World.run(
       'tabs open --url "data:text/html,<title>Second</title>" ; tabs list ; tabs close ; tabs list',

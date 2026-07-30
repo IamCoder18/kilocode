@@ -10,6 +10,7 @@ const BrowserTab: Component = () => {
   const { t } = useLanguage()
   const enabled = () => config().experimental?.world_browser !== false
   const headless = () => config().world?.browser?.headless ?? true
+  const useSystemChrome = () => config().world?.browser?.use_system_chrome ?? false
 
   const setEnabled = (value: boolean) => {
     updateConfig({ experimental: { ...config().experimental, world_browser: value } })
@@ -17,6 +18,12 @@ const BrowserTab: Component = () => {
 
   const setHeadless = (value: boolean) => {
     updateConfig({ world: { ...config().world, browser: { ...config().world?.browser, headless: value } } })
+  }
+
+  const setUseSystemChrome = (value: boolean) => {
+    updateConfig({
+      world: { ...config().world, browser: { ...config().world?.browser, use_system_chrome: value } },
+    })
   }
 
   return (
@@ -31,10 +38,19 @@ const BrowserTab: Component = () => {
         <SettingsRow
           title={t("settings.browser.headless.title")}
           description={t("settings.browser.headless.description")}
-          last
         >
           <Switch checked={headless()} onChange={setHeadless} hideLabel>
             {t("settings.browser.headless.title")}
+          </Switch>
+        </SettingsRow>
+
+        <SettingsRow
+          title={t("settings.browser.systemChrome.title")}
+          description={t("settings.browser.systemChrome.description")}
+          last
+        >
+          <Switch checked={useSystemChrome()} onChange={setUseSystemChrome} hideLabel>
+            {t("settings.browser.systemChrome.title")}
           </Switch>
         </SettingsRow>
       </Card>

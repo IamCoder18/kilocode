@@ -127,6 +127,7 @@ export interface WorldConfig {
     timeout_ms?: number
     viewport?: { width: number; height: number }
     executable_path?: string
+    use_system_chrome?: boolean
     args?: string[]
   }
 }

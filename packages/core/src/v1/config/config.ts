@@ -267,6 +267,10 @@ export const Info = Schema.Struct({
             }),
           ),
           executable_path: Schema.optional(Schema.String),
+          use_system_chrome: Schema.optional(Schema.Boolean).annotate({
+            description:
+              "Use the system-installed Google Chrome instead of the bundled Chromium. Falls back to bundled Chromium when Chrome is not found.",
+          }),
           args: Schema.optional(Schema.mutable(Schema.Array(Schema.String))),
         }),
       ),
@@ -323,7 +327,7 @@ export const Info = Schema.Struct({
       }),
       world_browser: Schema.optional(Schema.Boolean).annotate({
         description:
-          "Enable the world tool for browser automation. When enabled, visual browser actions return a screenshot.",
+          "Enable the World browser tool. The browser runs headless by default and returns an inline image after every visual action. Disable to hide browser capabilities from the agent.",
       }),
       // kilocode_change end
       primary_tools: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({

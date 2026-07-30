@@ -1,5 +1,6 @@
 import type { WorldConfig } from "../../types"
 import { ANTI_DETECT } from "./detect"
+import { findSystemChrome } from "./chrome"
 
 export namespace Launch {
   export type Options = {
@@ -12,7 +13,7 @@ export namespace Launch {
   }
 
   export function fromConfig(cfg: WorldConfig): Options {
-    const exe = cfg.browser.executablePath
+    const exe = cfg.browser.executablePath ?? (cfg.browser.useSystemChrome ? findSystemChrome() : undefined)
     const out: Options = {
       headless: cfg.browser.headless,
       antiDetect: cfg.browser.antiDetect,

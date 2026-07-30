@@ -71,6 +71,7 @@ export type BrowserConfig = {
   timeoutMs: number
   viewport: { width: number; height: number }
   executablePath?: string
+  useSystemChrome?: boolean
   args: string[]
 }
 

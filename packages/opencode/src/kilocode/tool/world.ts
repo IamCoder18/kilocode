@@ -14,81 +14,30 @@ import type { WorldConfig } from "@kilocode/world/types"
 
 const log = Log.create({ service: "kilocode-tool-world" })
 
-const DESCRIPTION = `Drive a real Chromium browser to interact with web pages. Use this tool for anything that needs a rendered DOM, JavaScript execution, or visual state — web scraping, form filling, taking screenshots, clicking through UI flows, scraping data behind JavaScript, etc.
+const DESCRIPTION = `Drive a Chromium browser to render pages, run JavaScript, click through UI, and capture screenshots. State persists across calls in a per-session daemon.
 
-Each call runs a "script": a ;-separated list of browser actions. Every script runs inside a long-lived per-session browser daemon (auto-started on the first call for that session). The daemon persists across multiple world() calls in the same session, so page state carries over. To explicitly stop the daemon, call \`world({ script: "daemon.stop" })\`.
+Proactively use this to verify UI changes (component, layout, style) without being asked by navigating to the page and confirming the result.
 
-How to write the script (quote-aware; ; inside '…' or "…" is preserved):
+Scripts are ;-separated verb calls. Prefer CSS selectors (\`#foo\`, \`input#bar\`) over role selectors — they pierce shadow DOM and survive across snapshots.
 
-  • Use 'single quotes' or "double quotes" around any value that contains spaces, ;
-    or special characters. The tool strips the outer quotes from the value it passes
-    to the verb.
-  • Use --js-file /path/to/file.js instead of --js for long JavaScript — no quoting
-    headaches, no length limits.
-  • Prefer CSS selectors (\`#full-name\`, \`input#email\`) over role selectors — they
-    are stable across snapshots, do not need Playwright's accessible-name matching,
-    and pierce shadow DOM automatically.
-  • Shadow DOM: Playwright pierces open shadow roots for plain CSS selectors.
-    \`fill --selector "input#shadow-pin"\` finds the input even though it lives in
-    a shadow root. The tool redaction strips names that match password/secret/pin
-    patterns from the snapshot text but keeps the ref and selector.
-
-Verb grammar (the script is parsed as a shell-like argv):
-
-  status                                    capability, sessions, Chromium installation state
-  navigate --url <url> [--wait <sel>] [--timeout <ms>]   goto URL; optional selector wait
-  snapshot                                  DOM walk with stable [ref=eN] ids and CSS selectors
-  click --ref <id> | --selector <sel>       click by ref (preferred) or selector
-  type --text <s> [--ref <id> | --selector <sel>]   type into element or focused page
-  fill --value <s> [--ref <id> | --selector <sel>] [--force]  replace input value (--force bypasses actionability checks for hidden elements)
-  press-key --chord <spec>                  key press or chord (e.g. "Control+a")
-  hover --ref <id> | --selector <sel>       hover
-  drag --from <ref|sel> --to <ref|sel>       drag between two targets
-  scroll --ref <id> --dx 0 --dy 400         scroll element or page
-  screenshot --out <file> [--full] [--wait <ms>] [--type png|jpeg] [--quality 50-100]   write the screenshot (default: jpeg q=80); the tool returns it as an inline image attachment
-  evaluate --js <code> | --js-file <path>   run JS in the page, return JSON value
-  wait-for --selector <sel> | --text <t> | --url <u> [--timeout <ms>]   wait for a condition
-  tabs list | open --url <u> | select --index <n> | close   tab management
+Verb grammar:
+  Common: \`--ref <eN>\` from snapshot (preferred) or \`--selector <css>\`. Values with spaces or \`;\` need quotes.
+  status - capability, sessions, Chromium installation state
+  navigate --url <url> [--wait <sel>] [--timeout <ms>]
+  snapshot - DOM walk with stable [ref=eN] ids and CSS selectors; prefer over screenshot
+  click | type --text | fill --value [--force] | hover | scroll --dx N --dy N - each takes --ref or --selector
+  press-key --chord "<spec>" (e.g. "Control+a")
+  drag --from <ref|sel> --to <ref|sel>
+  wait-for --selector | --text | --url [--timeout <ms>]
+  screenshot --out <file> [--full] [--wait <ms>] [--type png|jpeg] [--quality 50-100]
+  evaluate --js <code> | --js-file <path>
+  tabs list | open --url | select --index | close
   cookies get | set --name N --value V --domain D | clear
-  shutdown                                  close the browser (daemon stays alive; next call re-attaches)
-  daemon.status                             report the daemon's pid, uptime, and idle timeout
-  daemon.start --idle <ms>                  start (or re-configure) the per-session browser daemon (0 = never time out)
-  daemon.stop                               shut down the per-session browser daemon
+  shutdown - close browser; daemon stays alive
+  daemon.start --idle <ms> | daemon.status | daemon.stop
 
-Computer use is NOT implemented in v1. Do not ask this tool to drive the desktop.
-
-Examples:
-
-  # Find capability, then navigate and snapshot in one script
-  world({ script: "status ; navigate --url https://example.com ; snapshot" })
-
-  # Fill a form with chained actions. Set the <select> first (or via evaluate) so
-  # conditional fields are visible before fill. Shadow DOM inputs work via id selectors.
-  world({ script: [
-    "navigate --url https://example.com/form --wait '#full-name'",
-    "snapshot",
-    'fill --ref e2 --value "Aarav Agent"',
-    'fill --ref e3 --value "aarav@example.com"',
-    'fill --ref e5 --value "Kilo Corp"',
-    'click --ref e6',
-    'fill --ref e7 --value "1234"',
-    'screenshot --out /tmp/form.png --wait 1500',
-  ].join(' ; ') })
-
-  # Long JS via file (no quoting needed)
-  echo 'document.querySelectorAll("a").length' > /tmp/count.js
-  world({ script: "navigate --url https://example.com ; evaluate --js-file /tmp/count.js" })
-
-  # Manually start the daemon with no idle timeout (it stays alive until you stop it)
-  world({ script: "daemon.start --idle 0" })
-
-  # Update the idle timeout on an already-running daemon (preserves browser state)
-  world({ script: "daemon.start --idle 0" })
-
-  # Stop the per-session browser daemon when done
-  world({ script: "daemon.stop" })
-
-Always prefer snapshot over screenshot. Refs become stale across UI changes — re-snapshot before clicking if the page may have changed. Add --wait <selector> to navigate when the page has async rendering. Chromium is not downloaded automatically; if status reports it missing, install it with \`npx playwright install chromium\`.
+Example:
+  world({ script: "navigate --url http://localhost:3000/settings ; snapshot ; screenshot --out /tmp/check.png" })
 `
 
 const Params = Schema.Struct({
@@ -196,6 +145,7 @@ function configure(cfg: {
       timeout_ms?: number
       viewport?: { width: number; height: number }
       executable_path?: string
+      use_system_chrome?: boolean
       args?: string[]
     }
   }
@@ -213,6 +163,7 @@ function configure(cfg: {
       ...(browser.viewport ? { viewport: browser.viewport } : {}),
       ...(browser.args ? { args: [...browser.args] } : {}),
       ...(browser.executable_path ? { executablePath: browser.executable_path } : {}),
+      ...(browser.use_system_chrome !== undefined ? { useSystemChrome: browser.use_system_chrome } : {}),
     },
     home: current.home,
   })
