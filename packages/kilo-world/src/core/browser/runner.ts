@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, rmSync } from "node:fs"
+import childProcess, { type ChildProcess, type SpawnOptions, type SpawnSyncOptions } from "node:child_process"
 import { join } from "node:path"
 import { chromium, type Browser, type BrowserContext, type LaunchOptions, type Page } from "playwright"
 import { ensureHome, getConfig } from "../../config"
@@ -14,6 +15,7 @@ type Live = {
 }
 
 let activeBrowser: Browser | null = null
+let pending: Promise<Browser> | null = null
 const activeContexts: Map<string, Live> = new Map()
 const sessions: Map<string, SessionInfo> = new Map()
 
@@ -41,18 +43,34 @@ function buildLaunchOptions(): LaunchOptions {
   }
   if (opts.executablePath) {
     out.executablePath = opts.executablePath
-    return out
-  }
-  // On Windows, Playwright's default executable is `chrome-headless-shell.exe`,
-  // which is built with the CONSOLE subsystem — so spawning it briefly
-  // allocates a console window and flashes it at the user, even with
-  // `--headless`. The full `chrome.exe` is GUI-subsystem and does not.
-  // Switching to `channel: "chromium"` makes Playwright pick the full
-  // chromium binary while still honoring `headless: true`.
-  if (process.platform === "win32") {
-    ;(out as LaunchOptions & { channel?: string }).channel = "chromium"
   }
   return out
+}
+
+async function launch(timeout?: number): Promise<Browser> {
+  const opts = buildLaunchOptions()
+  if (timeout !== undefined) opts.timeout = timeout
+  if (process.platform !== "win32") return chromium.launch(opts)
+
+  // Playwright's browser process launcher omits windowsHide. Patch the shared
+  // child_process binding only for the duration of launch so its supported
+  // headless-shell executable does not flash a console window.
+  type Spawn = (command: string, args: readonly string[], options: SpawnOptions) => ChildProcess
+  const api = childProcess as unknown as { spawn: Spawn; spawnSync: typeof childProcess.spawnSync }
+  const spawn = api.spawn
+  const sync = api.spawnSync
+  api.spawn = (command, args, options) => spawn(command, args, { ...options, windowsHide: true })
+  api.spawnSync = ((command: string, args?: readonly string[] | SpawnSyncOptions, options?: SpawnSyncOptions) => {
+    if (Array.isArray(args)) return sync(command, args, { ...options, windowsHide: true })
+    const opts = args as SpawnSyncOptions | undefined
+    return sync(command, { ...opts, windowsHide: true })
+  }) as typeof sync
+  try {
+    return await chromium.launch(opts)
+  } finally {
+    api.spawn = spawn
+    api.spawnSync = sync
+  }
 }
 
 export namespace Runner {
@@ -63,21 +81,28 @@ export namespace Runner {
     return Array.from(sessions.values()).sort((a, b) => a.name.localeCompare(b.name))
   }
 
-  export async function ensureBrowser(): Promise<Browser> {
+  export async function ensureBrowser(timeout?: number): Promise<Browser> {
     if (activeBrowser && activeBrowser.isConnected()) return activeBrowser
-    const b = await chromium.launch(buildLaunchOptions())
-    activeBrowser = b
-    activeContexts.clear()
-    b.on("disconnected", () => {
-      if (activeBrowser === b) {
-        activeBrowser = null
-        activeContexts.clear()
-      }
+    if (pending) return pending
+    const task = launch(timeout).then((browser) => {
+      activeBrowser = browser
+      activeContexts.clear()
+      browser.on("disconnected", () => {
+        if (activeBrowser === browser) {
+          activeBrowser = null
+          activeContexts.clear()
+        }
+      })
+      return browser
     })
-    return b
+    const current = task.finally(() => {
+      if (pending === current) pending = null
+    })
+    pending = current
+    return current
   }
 
-  export async function attach(name: string): Promise<Live> {
+  export async function attach(name: string, timeout?: number): Promise<Live> {
     const existing = activeContexts.get(name)
     if (existing && existing.context.browser()) {
       if (existing.active.isClosed())
@@ -85,7 +110,7 @@ export namespace Runner {
       track(name, existing.active.url())
       return existing
     }
-    const browser = await ensureBrowser()
+    const browser = await ensureBrowser(timeout)
     const opts = Launch.fromConfig(getConfig())
     const ctx = await browser.newContext(Launch.contextOptions(opts))
     const page = await ctx.newPage()

@@ -9,6 +9,13 @@ const available = existsSync(chromium.executablePath())
 afterAll(() => Runner.shutdown())
 
 describe.skipIf(!available)("browser commands", () => {
+  test("deduplicates concurrent browser startup", async () => {
+    await Runner.shutdown()
+    const browsers = await Promise.all([Runner.ensureBrowser(), Runner.ensureBrowser(), Runner.ensureBrowser()])
+    expect(browsers[1]).toBe(browsers[0])
+    expect(browsers[2]).toBe(browsers[0])
+  })
+
   test("assigns distinct refs to elements with the same accessible name", async () => {
     const result = await World.run(
       'navigate --url "data:text/html,<button id=one>Same</button><button id=two>Same</button>" ; snapshot ; click --ref e2 ; evaluate --js "document.activeElement.id"',

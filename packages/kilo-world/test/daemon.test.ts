@@ -1,21 +1,27 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
-import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs"
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { chromium } from "playwright"
 import { DaemonClient, World } from "../src"
 import { DaemonServer } from "../src/daemon/server"
 
 const session = `test-${process.pid}`
+const peer = `${session}-peer`
 const home = mkdtempSync(join(tmpdir(), "kilo-world-test-"))
 const config = World.currentConfig()
+const available = existsSync(chromium.executablePath())
 
 beforeAll(() => {
   World.configure({ home })
 })
 
 afterAll(async () => {
-  await DaemonClient.stop(session)
-  await waitFor(() => !DaemonServer.isRunning(session))
+  await Promise.all([DaemonClient.stop(session), DaemonClient.stop(peer)])
+  await Promise.all([
+    waitFor(session, () => !DaemonServer.isRunning(session)),
+    waitFor(peer, () => !DaemonServer.isRunning(peer)),
+  ])
   World.configure(config)
   rmSync(home, { recursive: true, force: true })
 })
@@ -58,20 +64,48 @@ describe("world daemon", () => {
     expect(result.results[1]?.data).toMatchObject({ chromiumPid: null })
   })
 
+  test.skipIf(!available)("isolates browser state and processes between sessions", async () => {
+    const [first, second] = await Promise.all([
+      World.runForSession(
+        session,
+        'navigate --url "data:text/html,<title>First</title>" ; evaluate --js "document.title"',
+      ),
+      World.runForSession(
+        peer,
+        'navigate --url "data:text/html,<title>Second</title>" ; evaluate --js "document.title"',
+      ),
+    ])
+    expect(first.ok).toBe(true)
+    expect(second.ok).toBe(true)
+    expect(first.results[1]?.data).toEqual({ result: "First" })
+    expect(second.results[1]?.data).toEqual({ result: "Second" })
+    expect(DaemonClient.handshake(session)?.pid).not.toBe(DaemonClient.handshake(peer)?.pid)
+
+    const [firstState, secondState] = await Promise.all([
+      World.runForSession(session, 'evaluate --js "document.title"'),
+      World.runForSession(peer, 'evaluate --js "document.title"'),
+    ])
+    expect(firstState.results[0]?.data).toEqual({ result: "First" })
+    expect(secondState.results[0]?.data).toEqual({ result: "Second" })
+
+    expect(await DaemonClient.stop(peer)).toBe(true)
+    await waitFor(peer, () => !DaemonServer.isRunning(peer))
+  })
+
   test("stops cleanly and removes private state files", async () => {
     expect(await DaemonClient.stop(session)).toBe(true)
-    await waitFor(() => !DaemonServer.isRunning(session))
+    await waitFor(session, () => !DaemonServer.isRunning(session))
     expect(Bun.file(DaemonServer.pidPath(session)).exists()).resolves.toBe(false)
     expect(Bun.file(DaemonServer.handshakePath(session)).exists()).resolves.toBe(false)
   })
 })
 
-async function waitFor(check: () => boolean) {
+async function waitFor(id: string, check: () => boolean) {
   const start = Date.now()
   while (Date.now() - start < 5000) {
     if (check()) return
     await Bun.sleep(25)
   }
-  const pid = readFileSync(DaemonServer.pidPath(session), "utf8")
+  const pid = readFileSync(DaemonServer.pidPath(id), "utf8")
   throw new Error(`daemon did not stop (pid ${pid})`)
 }
