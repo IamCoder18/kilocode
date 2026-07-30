@@ -97,6 +97,8 @@ The CLI build must:
 3. Keep shared `packages/opencode/script/build.ts` changes inside the existing narrow `kilocode_change` integration block.
 4. Smoke-test the current-platform packaged daemon, not only the main Kilo executable.
 
+Every VS Code CLI copy path must treat `world-daemon.cjs` as a required sidecar. Local binary reuse, watch rebuilds, and production VSIX assembly must copy it beside `kilo` or `kilo.exe`; a cached or prebuilt binary without the daemon is incomplete and must be refreshed.
+
 The prior special branch in shared `packages/opencode/src/index.ts` that made the Bun executable enter daemon mode is removed. The Node daemon has its own entry point and does not bootstrap the full CLI.
 
 ## 6. Current V1 tool surface
@@ -123,6 +125,7 @@ world({ script: "navigate --url https://example.com ; snapshot" })
 | `daemon.start`, `daemon.status`, `daemon.stop` | Control daemon lifetime and idle timeout. |
 
 `world` remains permission-aware, validates writable screenshot paths, and is enabled through the existing experimental browser setting.
+Quoted script arguments preserve ordinary Windows path separators, so `screenshot --out "C:\\Users\\..."` writes to the requested absolute path after the tool-call JSON is decoded.
 
 ## 7. Session and lifecycle requirements
 

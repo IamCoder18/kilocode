@@ -6,6 +6,7 @@ import * as path from "path"
 const dir = "tree-sitter"
 const runtime = "tree-sitter.wasm"
 const kiloSandboxWorker = "kilo-sandbox-mutation-worker.js"
+const worldDaemon = "world-daemon.cjs"
 const bwrap = "bwrap"
 const bwrapLicense = path.join("licenses", "bubblewrap")
 const bwrapLicenseFiles = ["NOTICE", "COPYING", "MUSL-COPYRIGHT", "build.ts"]
@@ -41,6 +42,15 @@ export function kiloSandboxWorkerForBinary(file: string): string {
 
 export function hasKiloSandboxWorker(file: string): boolean {
   return fs.existsSync(kiloSandboxWorkerForBinary(file))
+}
+
+export function worldDaemonForBinary(file: string): string {
+  const p = paths(file)
+  return p.join(p.dirname(file), worldDaemon)
+}
+
+export function hasWorldDaemon(file: string): boolean {
+  return fs.existsSync(worldDaemonForBinary(file))
 }
 
 export async function copyTreeSitterResources(source: string, target: string): Promise<void> {
@@ -91,6 +101,14 @@ export async function copyKiloSandboxWorker(source: string, target: string): Pro
   const from = kiloSandboxWorkerForBinary(source)
   const to = kiloSandboxWorkerForBinary(target)
   if (!fs.existsSync(from)) throw new Error(`Kilo sandbox mutation worker not found at ${from}`)
+  await fs.promises.copyFile(from, to)
+}
+
+export async function copyWorldDaemon(source: string, target: string): Promise<void> {
+  const from = worldDaemonForBinary(source)
+  const to = worldDaemonForBinary(target)
+  if (!fs.existsSync(from)) throw new Error(`Kilo world daemon not found at ${from}`)
+  await fs.promises.rm(path.join(path.dirname(to), "world-daemon.js"), { force: true })
   await fs.promises.copyFile(from, to)
 }
 

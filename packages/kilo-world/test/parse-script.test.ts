@@ -25,8 +25,8 @@ describe("parseScript", () => {
     expect(() => parseScript(`navigate --url "https://example.com`)).toThrow(/unterminated quote/)
   })
 
-  test("rejects an unterminated escape", () => {
-    expect(() => parseScript(`type --text "value\\`)).toThrow(/unterminated escape/)
+  test("rejects an unterminated quote after a trailing literal backslash", () => {
+    expect(() => parseScript(`type --text "value\\`)).toThrow(/unterminated quote/)
   })
 
   test("preserves empty quoted arguments", () => {
@@ -37,6 +37,13 @@ describe("parseScript", () => {
     expect(parseScript(`screenshot --out "C:\\\\screenshots\\\\page.png" ; type --text "say \\"hello\\""`)).toEqual([
       { verb: "screenshot", args: ["--out", "C:\\screenshots\\page.png"] },
       { verb: "type", args: ["--text", 'say "hello"'] },
+    ])
+  })
+
+  test("preserves ordinary backslashes in quoted Windows paths", () => {
+    const script = String.raw`screenshot --out "C:\Users\Aarav\Downloads\page.png"`
+    expect(parseScript(script)).toEqual([
+      { verb: "screenshot", args: ["--out", String.raw`C:\Users\Aarav\Downloads\page.png`] },
     ])
   })
 

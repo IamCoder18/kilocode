@@ -7,8 +7,9 @@ export type Action = {
  * Parse a ;-separated script of browser actions.
  *
  * The parser is quote-aware: `;` inside `'…'`, `"…"`, or `` `…` `` is preserved
- * as a regular character. Backslash escapes are honored inside quoted
- * strings. Unquoted whitespace separates tokens.
+ * as a regular character. Inside quoted strings, a backslash only escapes
+ * the active quote character or another backslash, so ordinary Windows path
+ * separators are preserved. Unquoted whitespace separates tokens.
  *
  * The `evaluate --js <code>` verb reads the rest of its segment (or anything
  * after `--js-file <path>`) as a single token — `;` inside the JS is fine
@@ -52,7 +53,13 @@ export function parseScript(text: string): Action[] {
     }
     if (quote) {
       if (ch === "\\") {
-        escape = true
+        const next = text[i + 1]
+        if (next === quote || next === "\\") {
+          escape = true
+          started = true
+          continue
+        }
+        current += ch
         started = true
         continue
       }
