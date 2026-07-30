@@ -8,8 +8,9 @@ import { InstanceState } from "@/effect/instance-state"
 import { assertExternalDirectoryEffect } from "../../tool/external-directory"
 import { World, DaemonClient } from "@kilocode/world"
 import type { ActionResult, RunResult } from "@kilocode/world/types"
-import { WorldRuntime } from "@/kilocode/world-runtime"
 import * as Log from "@opencode-ai/core/util/log"
+import { inspect } from "./world-script"
+import type { WorldConfig } from "@kilocode/world/types"
 
 const log = Log.create({ service: "kilocode-tool-world" })
 
@@ -34,7 +35,7 @@ How to write the script (quote-aware; ; inside '…' or "…" is preserved):
 
 Verb grammar (the script is parsed as a shell-like argv):
 
-  status                                    capability, sessions, chromium download state
+  status                                    capability, sessions, Chromium installation state
   navigate --url <url> [--wait <sel>] [--timeout <ms>]   goto URL; optional selector wait
   snapshot                                  DOM walk with stable [ref=eN] ids and CSS selectors
   click --ref <id> | --selector <sel>       click by ref (preferred) or selector
@@ -68,7 +69,6 @@ Examples:
     "snapshot",
     'fill --ref e2 --value "Aarav Agent"',
     'fill --ref e3 --value "aarav@example.com"',
-    'evaluate --js "var s=document.getElementById(\'role\'); s.value=\'business\'; s.dispatchEvent(new Event(\'change\',{bubbles:true}))"',
     'fill --ref e5 --value "Kilo Corp"',
     'click --ref e6',
     'fill --ref e7 --value "1234"',
@@ -88,13 +88,12 @@ Examples:
   # Stop the per-session browser daemon when done
   world({ script: "daemon.stop" })
 
-Always prefer snapshot over screenshot. Refs become stale across UI changes — re-snapshot before clicking if the page may have changed. Add --wait <selector> to navigate when the page has async rendering. The first invocation may trigger a ~150 MB Chromium download; check the status verb's output before retrying.
+Always prefer snapshot over screenshot. Refs become stale across UI changes — re-snapshot before clicking if the page may have changed. Add --wait <selector> to navigate when the page has async rendering. Chromium is not downloaded automatically; if status reports it missing, install it with \`npx playwright install chromium\`.
 `
 
 const Params = Schema.Struct({
   script: Schema.String.annotate({
-    description:
-      'A ;-separated sequence of browser actions. Example: `navigate --url https://example.com ; snapshot`.',
+    description: "A ;-separated sequence of browser actions. Example: `navigate --url https://example.com ; snapshot`.",
   }),
   timeout: Schema.optional(Schema.Number).annotate({
     description: "Overall timeout in milliseconds. Defaults to 60_000.",
@@ -110,9 +109,13 @@ type Meta = {
   daemonStarted?: boolean
 }
 
+function record(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
 function summarize(r: ActionResult): string {
   if (!r.ok) return ` → error: ${r.error ?? "unknown"} (${r.durationMs}ms)`
-  const data = r.data as Record<string, unknown> | undefined
+  const data = record(r.data) ? r.data : undefined
   if (!data) return ` → ok (${r.durationMs}ms)`
   if (r.verb === "navigate") {
     const u = typeof data["finalUrl"] === "string" ? data["finalUrl"] : ""
@@ -130,7 +133,10 @@ function summarize(r: ActionResult): string {
   return ` → ${JSON.stringify(data).slice(0, 200)} (${r.durationMs}ms)`
 }
 
-function renderRefList(refs: Array<{ ref: string; role: string; name: string; selector?: string }> | undefined, limit: number): string {
+function renderRefList(
+  refs: Array<{ ref: string; role: string; name: string; selector?: string }> | undefined,
+  limit: number,
+): string {
   if (!refs || refs.length === 0) return "0 refs"
   const lines: string[] = [`${refs.length} refs:`]
   for (const r of refs.slice(0, limit)) {
@@ -146,7 +152,7 @@ function attachmentForResult(
   r: ActionResult,
   directory: string,
 ): { type: "file"; mime: string; url: string; filename: string } | undefined {
-  if (!r.screenshot) return
+  if (!r.screenshot) return undefined
   const abs = path.isAbsolute(r.screenshot.path) ? r.screenshot.path : path.join(directory, r.screenshot.path)
   const mime = r.screenshot.mime ?? "image/png"
   const data = readInlineData(abs, mime)
@@ -182,136 +188,160 @@ function readInlineData(absPath: string, mime: string = "image/png"): string | n
   }
 }
 
-function detectUrls(script: string): string | undefined {
-  const matches = script.match(/--url\s+["']?([^\s"']+)/g) ?? []
-  if (matches.length === 0) return undefined
-  const urls = matches
-    .map((m) => m.replace(/^--url\s+["']?/, ""))
-    .filter((u) => u.startsWith("http://") || u.startsWith("https://"))
-  return urls[0]
-}
-
-function applyConfigFromKilo(): void {
-  const cfg = (Config as { get?: () => unknown }).get?.()
-  if (!cfg) return
-  const worldCfg = (cfg as { world?: { enabled?: boolean; browser?: Record<string, unknown> } }).world
-  if (!worldCfg || worldCfg.enabled === false) return
-  const b = worldCfg.browser ?? {}
-  World.configure({
-    browser: {
-      headless: typeof b["headless"] === "boolean" ? (b["headless"] as boolean) : true,
-      antiDetect: typeof b["antiDetect"] === "boolean" ? (b["antiDetect"] as boolean) : false,
-      timeoutMs: typeof b["timeoutMs"] === "number" ? (b["timeoutMs"] as number) : 30_000,
-      viewport:
-        typeof b["viewport"] === "object" && b["viewport"]
-          ? (b["viewport"] as { width: number; height: number })
-          : { width: 1280, height: 720 },
-      args: Array.isArray(b["args"]) ? (b["args"] as string[]) : [],
-      ...(typeof b["executablePath"] === "string"
-        ? { executablePath: b["executablePath"] as string }
-        : {}),
-    },
-    home: typeof b["home"] === "string" ? (b["home"] as string) : World.currentConfig().home,
-  })
-}
-
-function assertExternalWrites(script: string, directory: string): Effect.Effect<void, never, never> {
-  const out = script.match(/--out\s+["']?([^\s"']+)/g) ?? []
-  if (out.length === 0) return Effect.void
-  return Effect.gen(function* () {
-    for (const m of out) {
-      const raw = m.replace(/^--out\s+["']?/, "").replace(/["']$/, "")
-      const abs = path.isAbsolute(raw) ? raw : path.join(directory, raw)
-      yield* assertExternalDirectoryEffect(abs as never)
+function configure(cfg: {
+  world?: {
+    browser?: {
+      headless?: boolean
+      anti_detect?: boolean
+      timeout_ms?: number
+      viewport?: { width: number; height: number }
+      executable_path?: string
+      args?: string[]
     }
+  }
+}): WorldConfig {
+  const current = World.currentConfig()
+  const world = cfg.world
+  if (!world) return current
+  const browser = world.browser ?? {}
+  return World.configure({
+    browser: {
+      ...current.browser,
+      ...(browser.headless !== undefined ? { headless: browser.headless } : {}),
+      ...(browser.anti_detect !== undefined ? { antiDetect: browser.anti_detect } : {}),
+      ...(browser.timeout_ms !== undefined ? { timeoutMs: browser.timeout_ms } : {}),
+      ...(browser.viewport ? { viewport: browser.viewport } : {}),
+      ...(browser.args ? { args: [...browser.args] } : {}),
+      ...(browser.executable_path ? { executablePath: browser.executable_path } : {}),
+    },
+    home: current.home,
   })
 }
 
-export const WorldTool = Tool.define<typeof Params, Meta, never, "world">(
+function screenshotPath(config: WorldConfig, session: string, call: string | undefined): string {
+  const name = `${session}-${call ?? Date.now()}`.replace(/[^a-zA-Z0-9_.-]/g, "_")
+  return path.join(config.home, "screenshots", `${name}.jpg`)
+}
+
+export const WorldTool = Tool.define(
   "world",
-  Effect.succeed({
-    description: DESCRIPTION,
-    parameters: Params,
-    execute: (params, ctx) =>
-      Effect.gen(function* () {
-        const inst = yield* InstanceState.context
-        applyConfigFromKilo()
+  Effect.gen(function* () {
+    const configs = yield* Config.Service
+    return {
+      description: DESCRIPTION,
+      parameters: Params,
+      execute: (params: Params, ctx: Tool.Context) =>
+        Effect.gen(function* () {
+          const inst = yield* InstanceState.context
+          const config = configure(yield* configs.get())
+          const script = inspect(params.script, inst.directory)
 
-        yield* Effect.promise(() => WorldRuntime.ensure())
-
-        const urlPattern = detectUrls(params.script)
-        if (urlPattern) {
           yield* ctx.ask({
-            permission: "webfetch",
-            patterns: [urlPattern],
-            always: ["*"],
+            permission: "world",
+            patterns: ["browser"],
+            always: ["browser"],
             metadata: { script: params.script },
           })
-        }
-        yield* assertExternalWrites(params.script, inst.directory)
-
-        const wasRunning = DaemonClient.isRunning(ctx.sessionID)
-        const timeout = params.timeout ?? 60_000
-        const controller = new AbortController()
-        const onAbort = () => controller.abort()
-        ctx.abort.addEventListener("abort", onAbort, { once: true })
-        const timer = setTimeout(() => controller.abort(), timeout)
-        const run = yield* Effect.promise(() =>
-          World.runForSession(ctx.sessionID, params.script, {
-            signal: controller.signal,
-            // Per-segment timeout for each daemon call. Without this the
-            // daemon client hardcodes 15s, which trips on first cold-start
-            // navigation. The overall abort above still caps the whole run.
-            timeoutMs: timeout,
-          }).finally(() => {
-            clearTimeout(timer)
-            ctx.abort.removeEventListener("abort", onAbort)
-          }),
-        )
-
-        const failedIdx = run.results.findIndex((r) => !r.ok)
-        const meta: Meta = {
-          ok: run.ok,
-          durationMs: run.durationMs,
-          actions: run.results.length,
-          daemonStarted: !wasRunning,
-          ...(failedIdx >= 0 ? { failedAt: failedIdx } : {}),
-        }
-
-        const formatted = formatResult(run, inst.directory)
-        const failed = failedIdx >= 0 ? run.results[failedIdx] : undefined
-
-        const lastResult = run.results[run.results.length - 1]
-        if (run.ok && lastResult && !lastResult.screenshot) {
-          try {
-            const auto = yield* Effect.promise(() =>
-              World.runForSession(ctx.sessionID, "screenshot --type jpeg --quality 80", {
-                signal: controller.signal,
-              }),
-            )
-            const shot = auto.results[0]
-            if (shot?.screenshot) {
-              const att = attachmentForResult(shot, inst.directory)
-              if (att) formatted.attachments.push(att)
-              formatted.output += `\n[auto-screenshot] ${shot.screenshot.bytes} bytes`
+          for (const url of script.urls) {
+            if (!url.startsWith("http://") && !url.startsWith("https://")) {
+              throw new Error(`URL must start with http:// or https://: ${url}`)
             }
-          } catch (err) {
-            log.warn("auto-screenshot failed", { error: String(err) })
+            yield* ctx.ask({
+              permission: "webfetch",
+              patterns: [url],
+              always: ["*"],
+              metadata: { script: params.script },
+            })
           }
-        }
+          for (const file of script.reads) {
+            yield* assertExternalDirectoryEffect(ctx, file)
+            yield* ctx.ask({
+              permission: "read",
+              patterns: [path.relative(inst.worktree, file)],
+              always: ["*"],
+              metadata: { filepath: file },
+            })
+          }
+          for (const file of script.writes) {
+            yield* assertExternalDirectoryEffect(ctx, file)
+            yield* ctx.ask({
+              permission: "edit",
+              patterns: [path.relative(inst.worktree, file)],
+              always: ["*"],
+              metadata: { filepath: file },
+            })
+          }
 
-        return {
-          title: failed
-            ? `world ${failed.verb} failed`
-            : run.results.length === 1
-              ? `world ${run.results[0]!.verb}`
-              : `world ${run.results.length} actions`,
-          output: run.ok
-            ? formatted.output
-            : `${formatted.output}\n\nScript failed at action ${failedIdx + 1}: ${failed?.error ?? "unknown"}`,
-          metadata: meta,
-          ...(formatted.attachments.length > 0 ? { attachments: formatted.attachments } : {}),
-        }
-      }).pipe(Effect.orDie),
+          const wasRunning = DaemonClient.isRunning(ctx.sessionID)
+          const timeout = params.timeout ?? 60_000
+          if (!Number.isFinite(timeout) || timeout <= 0) throw new Error("timeout must be a positive finite number")
+          const controller = new AbortController()
+          const onAbort = () => controller.abort()
+          ctx.abort.addEventListener("abort", onAbort, { once: true })
+          const timer = setTimeout(() => controller.abort(), timeout)
+          const run = yield* Effect.promise(() =>
+            World.runForSession(ctx.sessionID, params.script, {
+              signal: controller.signal,
+              timeoutMs: timeout,
+              directory: inst.directory,
+              config,
+            }).finally(() => {
+              clearTimeout(timer)
+              ctx.abort.removeEventListener("abort", onAbort)
+            }),
+          )
+
+          const failedIdx = run.results.findIndex((r) => !r.ok)
+          const meta: Meta = {
+            ok: run.ok,
+            durationMs: run.durationMs,
+            actions: run.results.length,
+            daemonStarted: !wasRunning,
+            ...(failedIdx >= 0 ? { failedAt: failedIdx } : {}),
+          }
+
+          const formatted = formatResult(run, inst.directory)
+          const failed = failedIdx >= 0 ? run.results[failedIdx] : undefined
+
+          const lastResult = run.results[run.results.length - 1]
+          const visual =
+            lastResult &&
+            !["status", "close", "shutdown", "daemon.start", "daemon.status", "daemon.stop"].includes(lastResult.verb)
+          if (run.ok && visual && !lastResult.screenshot) {
+            try {
+              const out = screenshotPath(config, ctx.sessionID, ctx.callID)
+              const auto = yield* Effect.promise(() =>
+                World.runForSession(ctx.sessionID, `screenshot --out ${JSON.stringify(out)} --type jpeg --quality 80`, {
+                  signal: ctx.abort,
+                  timeoutMs: 15_000,
+                  directory: inst.directory,
+                  config,
+                }),
+              )
+              const shot = auto.results[0]
+              if (shot?.screenshot) {
+                const att = attachmentForResult(shot, inst.directory)
+                if (att) formatted.attachments.push(att)
+                formatted.output += `\n[auto-screenshot] ${shot.screenshot.bytes} bytes`
+              }
+            } catch (err) {
+              log.warn("auto-screenshot failed", { error: String(err) })
+            }
+          }
+
+          return {
+            title: failed
+              ? `world ${failed.verb} failed`
+              : run.results.length === 1
+                ? `world ${run.results[0].verb}`
+                : `world ${run.results.length} actions`,
+            output: run.ok
+              ? formatted.output
+              : `${formatted.output}\n\nScript failed at action ${failedIdx + 1}: ${failed?.error ?? "unknown"}`,
+            metadata: meta,
+            ...(formatted.attachments.length > 0 ? { attachments: formatted.attachments } : {}),
+          }
+        }).pipe(Effect.orDie),
+    }
   }),
 )

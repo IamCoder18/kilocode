@@ -1,6 +1,5 @@
 import type { ElementHandle, Page } from "playwright"
 import type { RefEntry, Snapshot } from "../../types"
-import { SnapshotEngine } from "./snapshot"
 
 const PASSWORD_PATTERN = /password|passcode|secret|pin|otp|token|api[-_ ]?key/i
 const REDACTED = "[REDACTED]"
@@ -11,25 +10,31 @@ function redact(name: string, role: string | undefined): string {
   return PASSWORD_PATTERN.test(name) ? REDACTED : name
 }
 
-function selectorForRole(role: string | undefined, name: string): string | undefined {
-  if (!role || !name || name === REDACTED) return undefined
-  const safe = name.replace(/"/g, '\\"').slice(0, 120)
-  return `role=${role}[name="${safe}"]`
-}
-
 type WalkedNode = {
-  el: Element
+  ref: string
   role: string | null
   name: string
-  inShadow: boolean
-  hostSelector?: string
-  tag?: string
-  id?: string
 }
 
 type WalkResult = {
   nodes: WalkedNode[]
-  counter: { value: number }
+}
+
+function record(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function walked(value: unknown): value is WalkedNode {
+  if (!record(value)) return false
+  return (
+    typeof value.ref === "string" &&
+    (typeof value.role === "string" || value.role === null) &&
+    typeof value.name === "string"
+  )
+}
+
+function result(value: unknown): value is WalkResult {
+  return record(value) && Array.isArray(value.nodes) && value.nodes.every(walked)
 }
 
 const WALK_SCRIPT = `
@@ -89,41 +94,42 @@ const WALK_SCRIPT = `
     return false;
   }
 
-  function hostSelector(el) {
-    if (!el.id) return undefined;
-    return '#' + el.id;
+  function isHidden(el) {
+    const style = getComputedStyle(el);
+    return el.hidden || el.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse';
   }
 
-  function walk(root, inShadow, hostSel) {
-    const kids = inShadow ? Array.from(root.children) : Array.from(root.children);
+  function walk(root) {
+    const kids = Array.from(root.children);
     for (const el of kids) {
       if (visited.has(el)) continue;
       visited.add(el);
+      el.removeAttribute('data-kilo-ref');
       const tag = el.tagName.toLowerCase();
       if (['script', 'style', 'noscript', 'meta', 'link', 'head', 'title'].includes(tag)) continue;
+      if (isHidden(el)) continue;
       if (isInteractive(el) || (el.textContent || '').trim().length > 0) {
         const role = roleOf(el);
         const name = (nameOf(el) || '').trim();
         if (role || (el.tagName.toLowerCase() === 'a' && name)) {
+          const ref = 'e' + out.counter.value++;
+          el.setAttribute('data-kilo-ref', ref);
           out.nodes.push({
+            ref,
             role,
             name,
-            inShadow,
-            hostSelector: hostSel,
-            tag: el.tagName.toLowerCase(),
-            ...(el.id ? { id: el.id } : {}),
           });
         }
       }
       const sr = el.shadowRoot;
       if (sr) {
-        walk(sr, true, hostSelector(el));
+        walk(sr);
       }
-      walk(el, inShadow, hostSel);
+      walk(el);
     }
   }
 
-  walk(document.body, false, undefined);
+  walk(document.body);
   return out;
 })();
 `
@@ -172,10 +178,11 @@ export namespace Refs {
   }
 
   export async function capture(session: string, page: Page): Promise<Snapshot> {
-    const result = (await page.evaluate(WALK_SCRIPT)) as WalkResult
+    const value: unknown = await page.evaluate(WALK_SCRIPT)
+    if (!result(value)) throw new Error("browser snapshot returned an invalid result")
     const refs: RefEntry[] = []
-    for (const node of result.nodes) {
-      const ref = "e" + result.counter.value++
+    for (const node of value.nodes) {
+      const ref = node.ref
       const redacted = redact(node.name, node.role ?? undefined)
       const entry: RefEntry = {
         ref,
@@ -194,27 +201,12 @@ export namespace Refs {
   }
 }
 
-function buildSelector(node: WalkedNode & { tag?: string; id?: string }, redactedName: string): string | undefined {
-  const roleSel = selectorForRole(node.role ?? undefined, redactedName)
-  // For shadow DOM elements, prefer plain CSS — Playwright's locator
-  // pierces open shadow roots automatically.
-  if (node.inShadow) {
-    if (node.id) return `#${node.id}`
-    if (node.tag) return node.tag
-    return roleSel
-  }
-  // For regular elements, prefer a stable id-based CSS selector when
-  // available — it sidesteps the divergence between the snapshot's
-  // computed "name" (we clean label `*` markers) and Playwright's
-  // accessible-name calculation (which keeps them).
-  if (node.id) return `#${node.id}`
-  return roleSel
+function buildSelector(node: WalkedNode, _redactedName: string): string {
+  return `[data-kilo-ref="${node.ref}"]`
 }
 
 function renderTextTree(refs: RefEntry[]): string {
-  return refs
-    .map((r: RefEntry) => `- [ref=${r.ref}] [${r.role}] ${JSON.stringify(r.name)}`)
-    .join("\n")
+  return refs.map((r: RefEntry) => `- [ref=${r.ref}] [${r.role}] ${JSON.stringify(r.name)}`).join("\n")
 }
 
 function resolveLocator(page: Page, selector: string): Promise<ElementHandle | null> {
@@ -222,9 +214,9 @@ function resolveLocator(page: Page, selector: string): Promise<ElementHandle | n
   // We always go through locator() to support both.
   if (selector.includes(">>")) {
     const parts = selector.split(">>").map((s) => s.trim())
-    let loc = page.locator(parts[0]!).first()
+    let loc = page.locator(parts[0]).first()
     for (let i = 1; i < parts.length; i++) {
-      loc = loc.locator(parts[i]!)
+      loc = loc.locator(parts[i])
     }
     return loc.elementHandle()
   }
@@ -232,4 +224,3 @@ function resolveLocator(page: Page, selector: string): Promise<ElementHandle | n
 }
 
 const CACHE = new Map<string, Snapshot>()
-void SnapshotEngine

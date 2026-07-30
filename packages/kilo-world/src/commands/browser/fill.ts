@@ -17,7 +17,7 @@ export namespace Fill {
     const target = await Refs.refOrSelector(page, session, input.ref, input.selector)
     if (!target) throw new Error(`no element found for ${input.ref ?? input.selector}`)
     await target.fill(input.value, input.force ? { force: true } : undefined)
-    await target.dispose().catch(() => {})
+    await target.dispose()
     return { length: input.value.length }
   }
 }

@@ -1696,6 +1696,19 @@ export type Config = {
     max_lines?: number
     max_bytes?: number
   }
+  world?: {
+    browser?: {
+      headless?: boolean
+      anti_detect?: boolean
+      timeout_ms?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      viewport?: {
+        width: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+        height: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      }
+      executable_path?: string
+      args?: Array<string>
+    }
+  }
   compaction?: {
     auto?: boolean
     /**

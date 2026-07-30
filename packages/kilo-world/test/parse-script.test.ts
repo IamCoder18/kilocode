@@ -25,6 +25,21 @@ describe("parseScript", () => {
     expect(() => parseScript(`navigate --url "https://example.com`)).toThrow(/unterminated quote/)
   })
 
+  test("rejects an unterminated escape", () => {
+    expect(() => parseScript(`type --text "value\\`)).toThrow(/unterminated escape/)
+  })
+
+  test("preserves empty quoted arguments", () => {
+    expect(parseScript(`fill --ref e1 --value ""`)).toEqual([{ verb: "fill", args: ["--ref", "e1", "--value", ""] }])
+  })
+
+  test("decodes escaped quotes and backslashes", () => {
+    expect(parseScript(`screenshot --out "C:\\\\screenshots\\\\page.png" ; type --text "say \\"hello\\""`)).toEqual([
+      { verb: "screenshot", args: ["--out", "C:\\screenshots\\page.png"] },
+      { verb: "type", args: ["--text", 'say "hello"'] },
+    ])
+  })
+
   test("preserves ; inside single quotes", () => {
     const actions = parseScript(`evaluate --js 'var x = 1; return x; done'`)
     expect(actions).toEqual([{ verb: "evaluate", args: ["--js", "var x = 1; return x; done"] }])
@@ -70,5 +85,21 @@ describe("World.configure", () => {
     expect(next.browser.headless).toBe(false)
     expect(next.browser.timeoutMs).toBe(12345)
     expect(World.currentConfig()).toEqual(next)
+    World.configure(before)
+  })
+})
+
+describe("World.run", () => {
+  test("stops after the first failed action", async () => {
+    const result = await World.run("unknown ; status")
+    expect(result.ok).toBe(false)
+    expect(result.results).toHaveLength(1)
+    expect(result.results[0]?.verb).toBe("unknown")
+  })
+
+  test("honors a signal aborted before execution", async () => {
+    const controller = new AbortController()
+    controller.abort()
+    expect(World.run("status", { signal: controller.signal })).rejects.toThrow()
   })
 })

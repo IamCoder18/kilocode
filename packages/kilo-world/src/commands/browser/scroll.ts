@@ -17,8 +17,8 @@ export namespace Scroll {
     if (input.ref || input.selector) {
       const target = await Refs.refOrSelector(page, session, input.ref, input.selector)
       if (target) {
-        await target.scrollIntoViewIfNeeded().catch(() => {})
-        await target.dispose().catch(() => {})
+        await target.scrollIntoViewIfNeeded()
+        await target.dispose()
       }
     }
     await page.mouse.wheel(input.dx, input.dy)

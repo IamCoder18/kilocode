@@ -1458,9 +1458,6 @@ export const dict = {
     "Model used to skim tool outputs; defaults to the configured small model",
   "settings.experimental.mcpTimeout.title": "MCP Timeout (ms)",
   "settings.experimental.mcpTimeout.description": "Timeout for MCP server requests in milliseconds",
-  "settings.experimental.worldBrowser.title": "World (Browser Use)",
-  "settings.experimental.worldBrowser.description":
-    "Enable the world tool for browser automation. A screenshot is automatically attached after every call.",
   "settings.experimental.remote.title": "Remote Control",
   "settings.experimental.remote.description":
     "Enable remote control of sessions via Kilo Cloud. This will also affect CLIs on this machine.",

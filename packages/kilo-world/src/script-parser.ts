@@ -21,15 +21,17 @@ export function parseScript(text: string): Action[] {
   let current = ""
   let quote: '"' | "'" | "`" | null = null
   let escape = false
+  let started = false
 
   const flushToken = () => {
-    if (current.length === 0) return
+    if (!started) return
     if (verb === null) {
       verb = current
     } else {
       args.push(current)
     }
     current = ""
+    started = false
   }
   const flushVerb = () => {
     flushToken()
@@ -41,16 +43,17 @@ export function parseScript(text: string): Action[] {
   }
 
   for (let i = 0; i < text.length; i++) {
-    const ch = text[i]!
+    const ch = text[i]
     if (escape) {
       current += ch
       escape = false
+      started = true
       continue
     }
     if (quote) {
       if (ch === "\\") {
-        current += ch
         escape = true
+        started = true
         continue
       }
       if (ch === quote) {
@@ -59,11 +62,13 @@ export function parseScript(text: string): Action[] {
         continue
       }
       current += ch
+      started = true
       continue
     }
     if (ch === '"' || ch === "'" || ch === "`") {
       // opening quote — do not include the quote char in the token
       quote = ch
+      started = true
       continue
     }
     if (ch === ";") {
@@ -76,9 +81,11 @@ export function parseScript(text: string): Action[] {
       continue
     }
     current += ch
+    started = true
   }
+  if (escape) throw new Error("unterminated escape in script")
+  if (quote !== null) throw new Error("unterminated quote in script")
   flushToken()
   flushVerb()
-  if (quote !== null) throw new Error("unterminated quote in script")
   return actions
 }

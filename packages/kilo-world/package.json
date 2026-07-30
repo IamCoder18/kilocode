@@ -11,6 +11,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./daemon": "./src/daemon/runtime.ts",
     "./runner": "./src/core/browser/runner.ts",
     "./types": "./src/types.ts"
   },
@@ -19,13 +20,10 @@
   ],
   "scripts": {
     "typecheck": "tsgo --noEmit",
-    "build": "bun build src/daemon/entry.ts --target=node --outdir=dist --format=esm && bun run build:shebang",
-    "build:shebang": "node -e \"const fs=require('node:fs');const p='dist/entry.js';let s=fs.readFileSync(p,'utf8').replace(/^#!.*\\n/,'');fs.writeFileSync(p,'#!/usr/bin/env node\\n'+s);fs.chmodSync(p,0o755)\"",
-    "build:bun": "bun build src/daemon/entry.ts --target=bun --outdir=dist --format=esm",
+    "build": "bun build src/index.ts --target bun --outdir dist --entry-naming index.js",
     "test": "bun test --timeout 30000"
   },
   "dependencies": {
-    "chromium-bidi": "^12.0.0",
     "playwright": "1.61.1"
   },
   "devDependencies": {

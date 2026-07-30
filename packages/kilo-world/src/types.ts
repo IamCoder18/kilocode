@@ -15,8 +15,8 @@ export type BrowserCapability = {
   display?: string
   chromiumReady: boolean
   chromiumVersion?: string
-  download: {
-    state: "unknown" | "available" | "downloading" | "missing"
+  installation: {
+    state: "available" | "missing"
     message?: string
   }
 }
@@ -82,11 +82,15 @@ export type WorldConfig = {
 export type Action = {
   verb: string
   args: string[]
+  directory?: string
+  config?: WorldConfig
 }
 
 export type RunOptions = {
   signal?: AbortSignal
   timeoutMs?: number
+  directory?: string
+  config?: WorldConfig
 }
 
 export type RunResult = {

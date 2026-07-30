@@ -12,8 +12,8 @@ export namespace Status {
         headless: cfg.browser.headless,
         ...(process.env["DISPLAY"] !== undefined ? { display: process.env["DISPLAY"] } : {}),
         chromiumReady: probe.state === "available",
-        chromiumVersion: probe.message,
-        download: probe,
+        ...(Runner.version() ? { chromiumVersion: Runner.version() } : {}),
+        installation: probe,
       },
       chromiumPid: null,
     }

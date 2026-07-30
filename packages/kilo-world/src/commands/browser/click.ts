@@ -17,7 +17,7 @@ export namespace Click {
     const target = await Refs.refOrSelector(page, session, input.ref, input.selector)
     if (!target) throw new Error(`no element found for ${input.ref ?? input.selector}`)
     await target.click({ timeout: input.timeoutMs ?? Launch.TIMEOUT_MS_DEFAULT })
-    await target.dispose().catch(() => {})
+    await target.dispose()
     return {
       ...(input.ref ? { ref: input.ref } : {}),
       ...(input.selector ? { selector: input.selector } : {}),

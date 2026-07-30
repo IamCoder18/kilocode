@@ -28,7 +28,7 @@ export namespace Drag {
     if (!target) throw new Error(`no element found for ${raw}`)
     const box = await target.boundingBox()
     if (!box) throw new Error(`no bounding box for ${raw}`)
-    await target.dispose().catch(() => {})
+    await target.dispose()
     return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
   }
 

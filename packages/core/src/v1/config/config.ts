@@ -18,7 +18,10 @@ import { ConfigServerV1 } from "./server"
 import { ConfigSkillsV1 } from "./skills"
 // kilocode_change start
 import { ZodOverride } from "../../effect-zod"
-import { IndexingConfig as KiloIndexingConfig, IndexingSchema as KiloIndexingSchema } from "@kilocode/kilo-indexing/config"
+import {
+  IndexingConfig as KiloIndexingConfig,
+  IndexingSchema as KiloIndexingSchema,
+} from "@kilocode/kilo-indexing/config"
 import z from "zod"
 // kilocode_change end
 
@@ -249,6 +252,27 @@ export const Info = Schema.Struct({
     description:
       "Thresholds for truncating tool output. When output exceeds either limit, the full text is written to the truncation directory and a preview is returned.",
   }),
+  // kilocode_change start
+  world: Schema.optional(
+    Schema.Struct({
+      browser: Schema.optional(
+        Schema.Struct({
+          headless: Schema.optional(Schema.Boolean),
+          anti_detect: Schema.optional(Schema.Boolean),
+          timeout_ms: Schema.optional(Schema.Number),
+          viewport: Schema.optional(
+            Schema.Struct({
+              width: Schema.Number,
+              height: Schema.Number,
+            }),
+          ),
+          executable_path: Schema.optional(Schema.String),
+          args: Schema.optional(Schema.mutable(Schema.Array(Schema.String))),
+        }),
+      ),
+    }),
+  ).annotate({ description: "Browser runtime settings for the world tool" }),
+  // kilocode_change end
   compaction: Schema.optional(
     Schema.Struct({
       auto: Schema.optional(Schema.Boolean).annotate({
@@ -299,7 +323,7 @@ export const Info = Schema.Struct({
       }),
       world_browser: Schema.optional(Schema.Boolean).annotate({
         description:
-          "Enable the world tool for browser automation. When enabled, a screenshot is automatically attached after every call.",
+          "Enable the world tool for browser automation. When enabled, visual browser actions return a screenshot.",
       }),
       // kilocode_change end
       primary_tools: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({

@@ -19,7 +19,7 @@ export namespace Type {
       if (!target) throw new Error(`no element found for ${input.ref ?? input.selector}`)
       await target.fill("")
       await target.type(input.text, input.delay ? { delay: input.delay } : undefined)
-      await target.dispose().catch(() => {})
+      await target.dispose()
     } else {
       await page.keyboard.type(input.text, input.delay ? { delay: input.delay } : undefined)
     }

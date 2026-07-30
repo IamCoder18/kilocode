@@ -1,5 +1,6 @@
 import { defaultConfig, ensureHome, getConfig, setConfig } from "./config"
 import { DaemonClient } from "./daemon/client"
+import { dispatch } from "./daemon/dispatch"
 import { parseScript as parseScriptFn } from "./script-parser"
 import type { Action, RunOptions, RunResult, WorldConfig } from "./types"
 
@@ -21,16 +22,15 @@ export namespace World {
   export const parseScript = (text: string): Action[] => parseScriptFn(text)
 
   export async function run(script: string, opts: RunOptions = {}): Promise<RunResult> {
-    const { dispatch } = await import("./dispatcher")
     const actions = parseScript(script)
     const startedAt = Date.now()
     const results: RunResult["results"] = []
     let allOk = true
     for (const action of actions) {
+      opts.signal?.throwIfAborted()
       const result = await dispatch(action, opts)
       results.push(result)
-      if (!result.ok) allOk = false
-      if (opts.signal?.aborted) {
+      if (!result.ok) {
         allOk = false
         break
       }
@@ -38,11 +38,7 @@ export namespace World {
     return { ok: allOk, durationMs: Date.now() - startedAt, results }
   }
 
-  export async function runForSession(
-    sessionID: string,
-    script: string,
-    opts: RunOptions = {},
-  ): Promise<RunResult> {
+  export async function runForSession(sessionID: string, script: string, opts: RunOptions = {}): Promise<RunResult> {
     return DaemonClient.runViaSession(sessionID, script, opts)
   }
 

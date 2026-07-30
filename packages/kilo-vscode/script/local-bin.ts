@@ -6,10 +6,8 @@ import {
   copyKiloSandboxWorker,
   copySandboxResources,
   copyTreeSitterResources,
-  copyWorldDaemon,
   hasKiloSandboxWorker,
   hasTreeSitterResources,
-  hasWorldDaemon,
   kiloSandboxWorkerForBinary,
   sanitizeSandboxResources,
 } from "../src/services/cli-backend/cli-resources"
@@ -229,7 +227,7 @@ async function writeSourceWrapper() {
 async function main() {
   const targetFile = Bun.file(targetBinPath)
   const exists = await targetFile.exists()
-  const ready = exists && hasTreeSitterResources(targetBinPath) && hasKiloSandboxWorker(targetBinPath) && hasWorldDaemon(targetBinPath)
+  const ready = exists && hasTreeSitterResources(targetBinPath) && hasKiloSandboxWorker(targetBinPath)
 
   const stale = ready && !forceRebuild && (await isStale())
   const rebuild = forceRebuild || stale || !ready
@@ -271,7 +269,6 @@ async function main() {
   await copyTreeSitterResources(sourceBinPath, targetBinPath)
   await copySandboxResources(sourceBinPath, targetBinPath)
   await copyKiloSandboxWorker(sourceBinPath, targetBinPath)
-  await copyWorldDaemon(sourceBinPath, targetBinPath)
   chmodSync(targetBinPath, 0o755)
   await ensureLocalHelpers()
 

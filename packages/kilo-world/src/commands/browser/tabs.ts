@@ -1,4 +1,5 @@
 import { Runner } from "../../core/browser/runner"
+import { Refs } from "../../core/browser/refs"
 import type { TabInfo } from "../../types"
 
 export namespace Tabs {
@@ -8,7 +9,7 @@ export namespace Tabs {
     const pages = live.context.pages()
     const out: TabInfo[] = []
     for (let index = 0; index < pages.length; index++) {
-      const page = pages[index]!
+      const page = pages[index]
       const url = page.url()
       let title: string | undefined
       try {
@@ -16,7 +17,7 @@ export namespace Tabs {
       } catch {
         title = undefined
       }
-      out.push({ index, url, ...(title ? { title } : {}), active: index === live.activeIndex })
+      out.push({ index, url, ...(title ? { title } : {}), active: page === live.active })
     }
     return out
   }
@@ -25,32 +26,43 @@ export namespace Tabs {
     const name = input.session ?? "default"
     const live = await Runner.attach(name)
     const page = await live.context.newPage()
-    live.pages.push(page)
-    live.activeIndex = live.pages.length - 1
+    live.active = page
+    Refs.reset(name)
     await page.goto(input.url, { waitUntil: "load" })
-    return { index: live.activeIndex, url: input.url }
+    Runner.touch(name, page.url())
+    return { index: live.context.pages().indexOf(page), url: page.url() }
   }
 
   export async function select(input: { session?: string; index: number }): Promise<{ index: number; url: string }> {
     const name = input.session ?? "default"
     const live = await Runner.attach(name)
-    if (input.index < 0 || input.index >= live.pages.length) {
+    const pages = live.context.pages()
+    if (input.index < 0 || input.index >= pages.length) {
       throw new Error(`tab index out of range: ${input.index}`)
     }
-    live.activeIndex = input.index
-    const page = live.pages[input.index]!
+    const page = pages[input.index]
+    live.active = page
+    Refs.reset(name)
+    Runner.touch(name, page.url())
     return { index: input.index, url: page.url() }
   }
 
-  export async function close(input: { session?: string; index?: number }): Promise<{ closed: number; remaining: number }> {
+  export async function close(input: {
+    session?: string
+    index?: number
+  }): Promise<{ closed: number; remaining: number }> {
     const name = input.session ?? "default"
     const live = await Runner.attach(name)
-    const target = input.index ?? live.activeIndex
-    if (target < 0 || target >= live.pages.length) throw new Error(`tab index out of range: ${target}`)
-    const page = live.pages[target]!
-    await page.close().catch(() => {})
-    live.pages.splice(target, 1)
-    if (live.activeIndex >= live.pages.length) live.activeIndex = Math.max(0, live.pages.length - 1)
-    return { closed: target, remaining: live.pages.length }
+    const pages = live.context.pages()
+    const target = input.index ?? pages.indexOf(live.active)
+    if (target < 0 || target >= pages.length) throw new Error(`tab index out of range: ${target}`)
+    const page = pages[target]
+    await page.close()
+    const remaining = live.context.pages()
+    if (page === live.active)
+      live.active = remaining[Math.min(target, remaining.length - 1)] ?? (await live.context.newPage())
+    Refs.reset(name)
+    Runner.touch(name, live.active.url())
+    return { closed: target, remaining: live.context.pages().length }
   }
 }

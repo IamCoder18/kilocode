@@ -453,10 +453,6 @@ export interface StreamSessionVisibleMessage {
   visible: boolean
 }
 
-export interface RequestBrowserSettingsMessage {
-  type: "requestBrowserSettings"
-}
-
 export interface RequestClaudeCompatSettingMessage {
   type: "requestClaudeCompatSetting"
 }
@@ -1281,7 +1277,6 @@ export type WebviewMessage =
   | SetWorkStyleMessage
   | ApplyWorkStyleMessage
   | StreamSessionVisibleMessage
-  | RequestBrowserSettingsMessage
   | RequestClaudeCompatSettingMessage
   | RequestConfigMessage
   | RequestGlobalConfigMessage

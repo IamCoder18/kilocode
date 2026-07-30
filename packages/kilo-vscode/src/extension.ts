@@ -59,16 +59,13 @@ export function activate(context: vscode.ExtensionContext) {
     void context.workspaceState.update(RESTORE_KEY, restore)
   }
 
-  // Create world diagnostics service (runs kilo world browser status / doctor)
-  const browserAutomationService: { dispose: () => void } | null = null
-
   // Create remote status service (one status bar item for all webviews)
   const remoteService = new RemoteStatusService()
   context.subscriptions.push(remoteService)
   connectionService.setRemoteService(remoteService)
 
-  // Re-register browser automation MCP server on CLI backend reconnect, configure telemetry,
-  // set remote service client, and reload autocomplete so it picks up the now-available backend connection.
+  // Configure telemetry, set the remote service client, and reload autocomplete
+  // when the backend connection becomes available.
   const unsubscribeStateChange = connectionService.onStateChange((state) => {
     if (state === "connected") {
       const config = connectionService.getServerConfig()
@@ -575,7 +572,6 @@ export function activate(context: vscode.ExtensionContext) {
       shuttingDown = true
       unsubscribeStateChange()
       attention.dispose()
-      ;(browserAutomationService as { dispose: () => void } | null)?.dispose?.()
       provider.dispose()
       notebookBridge.dispose()
       connectionService.dispose()

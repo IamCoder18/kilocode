@@ -232,19 +232,6 @@ const ExperimentalTab: Component = () => {
           </Switch>
         </SettingsRow>
 
-        <SettingsRow
-          title={language.t("settings.experimental.worldBrowser.title")}
-          description={language.t("settings.experimental.worldBrowser.description")}
-        >
-          <Switch
-            checked={experimental().world_browser !== false}
-            onChange={(checked) => updateExperimental("world_browser", checked)}
-            hideLabel
-          >
-            {language.t("settings.experimental.worldBrowser.title")}
-          </Switch>
-        </SettingsRow>
-
         <Show when={experimental().swe_pruner}>
           <SettingsRow
             title={language.t("settings.experimental.swePrunerModel.title")}

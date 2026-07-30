@@ -20,7 +20,10 @@ export namespace Cookies {
     return out
   }
 
-  export async function get(input: { session?: string; domain?: string }): Promise<{ cookies: CookieEntry[]; count: number }> {
+  export async function get(input: {
+    session?: string
+    domain?: string
+  }): Promise<{ cookies: CookieEntry[]; count: number }> {
     const name = input.session ?? "default"
     const live = await Runner.attach(name)
     const all = await live.context.cookies()
@@ -61,7 +64,7 @@ export namespace Cookies {
     const live = await Runner.attach(name)
     const before = (await live.context.cookies()).length
     if (input.domain) {
-      const matched = await live.context.cookies(input.domain)
+      const matched = (await live.context.cookies()).filter((cookie) => matchesDomain(cookie, input.domain!))
       for (const cookie of matched) {
         await live.context.clearCookies({
           name: cookie.name,

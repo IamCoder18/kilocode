@@ -33,6 +33,14 @@ import { KiloCli } from "@/kilocode/cli/setup" // kilocode_change
 import * as Log from "@opencode-ai/core/util/log" // kilocode_change
 import { ensureProcessMetadata } from "@opencode-ai/core/util/opencode-process" // kilocode_change
 
+// kilocode_change start - reuse the shipped CLI runtime for the isolated world daemon
+if (process.env.KILO_WORLD_DAEMON === "1") {
+  const daemon = await import("@kilocode/world/daemon")
+  await daemon.start()
+  process.exit()
+}
+// kilocode_change end
+
 const args = hideBin(process.argv)
 const metadata = ensureProcessMetadata("main") // kilocode_change - correlate logs across the CLI and TUI worker
 

@@ -22,10 +22,8 @@ import pkg from "../package.json"
 // kilocode_change start
 import { stageBubblewrap } from "./kilocode/bubblewrap"
 import { LanceDBRuntime } from "../src/kilocode/lancedb"
-import { WorldRuntime } from "../src/kilocode/world-runtime"
 import { KiloSandboxWorker } from "./kilocode/kilo-sandbox-worker"
 import { KiloSandboxNetwork } from "./kilocode/kilo-sandbox-network"
-import { WorldDaemon } from "./kilocode/world-daemon"
 // kilocode_change end
 
 const singleFlag = process.argv.includes("--single")
@@ -224,7 +222,6 @@ await $`rm -rf dist`
 const kiloConsoleDist = await buildKiloConsole()
 const kiloSandboxWorker = await KiloSandboxWorker.bundle()
 const kiloSandboxNetwork = await KiloSandboxNetwork.bundle()
-const worldDaemon = await WorldDaemon.bundle()
 // kilocode_change end
 
 const binaries: Record<string, string> = {}
@@ -273,7 +270,7 @@ for (const item of targets) {
     plugins: [plugin],
     // kilocode_change start - skip sourcemaps for release builds (each .js.map adds ~50 MB per target → ~600 MB total)
     sourcemap: Script.release ? "none" : "external",
-    external: ["node-gyp", ...LanceDBRuntime.external, ...WorldRuntime.external],
+    external: ["node-gyp", ...LanceDBRuntime.external],
     // kilocode_change end
     format: "esm",
     minify: true,
@@ -329,7 +326,6 @@ for (const item of targets) {
   await copyTreeSitterWasms(path.resolve(dir, `dist/${name}/bin`))
   await copyKiloConsole(kiloConsoleDist, path.resolve(dir, `dist/${name}/bin`))
   await KiloSandboxWorker.copy(kiloSandboxWorker, path.resolve(dir, `dist/${name}/bin`))
-  await WorldDaemon.copy(worldDaemon, path.resolve(dir, `dist/${name}/bin`))
   if (item.os === "linux") {
     await KiloSandboxNetwork.copy(kiloSandboxNetwork, path.resolve(dir, `dist/${name}/bin`), item.arch)
   }

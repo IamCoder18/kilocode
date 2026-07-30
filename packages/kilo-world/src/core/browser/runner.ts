@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync } from "node:fs"
+import { existsSync, mkdirSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { chromium, type Browser, type BrowserContext, type LaunchOptions, type Page } from "playwright"
 import { ensureHome, getConfig } from "../../config"
@@ -9,8 +9,7 @@ type Live = {
   name: string
   context: BrowserContext
   browser: Browser
-  pages: Page[]
-  activeIndex: number
+  active: Page
   home: string
 }
 
@@ -57,6 +56,9 @@ function buildLaunchOptions(): LaunchOptions {
 }
 
 export namespace Runner {
+  export function version(): string | undefined {
+    return activeBrowser?.isConnected() ? activeBrowser.version() : undefined
+  }
   export function listSessions(): SessionInfo[] {
     return Array.from(sessions.values()).sort((a, b) => a.name.localeCompare(b.name))
   }
@@ -77,7 +79,12 @@ export namespace Runner {
 
   export async function attach(name: string): Promise<Live> {
     const existing = activeContexts.get(name)
-    if (existing && existing.context.browser()) return existing
+    if (existing && existing.context.browser()) {
+      if (existing.active.isClosed())
+        existing.active = existing.context.pages()[0] ?? (await existing.context.newPage())
+      track(name, existing.active.url())
+      return existing
+    }
     const browser = await ensureBrowser()
     const opts = Launch.fromConfig(getConfig())
     const ctx = await browser.newContext(Launch.contextOptions(opts))
@@ -86,8 +93,7 @@ export namespace Runner {
       name,
       context: ctx,
       browser,
-      pages: [page],
-      activeIndex: 0,
+      active: page,
       home: home(),
     }
     activeContexts.set(name, live)
@@ -100,37 +106,37 @@ export namespace Runner {
     const live = activeContexts.get(name)
     if (!live) return false
     activeContexts.delete(name)
-    await live.context.close().catch(() => {})
+    sessions.delete(name)
+    await live.context.close()
     rmSync(join(live.home, "contexts", name), { recursive: true, force: true })
     return true
   }
 
   export async function shutdown(): Promise<void> {
-    for (const live of activeContexts.values()) {
-      await live.context.close().catch(() => {})
-    }
+    await Promise.allSettled(Array.from(activeContexts.values(), (live) => live.context.close()))
     activeContexts.clear()
     sessions.clear()
     if (activeBrowser) {
-      await activeBrowser.close().catch(() => {})
+      await activeBrowser.close()
       activeBrowser = null
     }
   }
 
-  export function probeChromium(): Promise<BrowserCapability["download"]> {
-    return chromium
-      .launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] })
-      .then(async (b) => {
-        const v = b.version()
-        await b.close().catch(() => {})
-        return { state: "available" as const, ...(v ? { message: v } : {}) }
-      })
-      .catch((err: Error) => ({ state: "missing" as const, message: err.message }))
+  export function probeChromium(): Promise<BrowserCapability["installation"]> {
+    const executable = getConfig().browser.executablePath ?? chromium.executablePath()
+    if (existsSync(executable)) return Promise.resolve({ state: "available", message: executable })
+    return Promise.resolve({ state: "missing", message: `Chromium executable not found at ${executable}` })
   }
 
   export function activePage(live: Live): Page {
-    const page = live.pages[live.activeIndex]
+    if (!live.active.isClosed()) return live.active
+    const page = live.context.pages()[0]
     if (!page) throw new Error(`session ${live.name} has no active page`)
+    live.active = page
     return page
+  }
+
+  export function touch(name: string, url?: string): void {
+    track(name, url)
   }
 }

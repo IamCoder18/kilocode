@@ -5,7 +5,7 @@ description: "Using Kilo Code to interact with web browsers"
 
 # Browser Use
 
-Kilo Code provides browser automation as a first-class agent tool called `world`. The agent invokes it directly (no shell wrapping) with a `script` parameter — a `;`-separated sequence of browser actions that run in a shared Playwright session.
+Kilo Code provides browser automation capabilities that let you interact with websites directly from your coding workflow. This feature supports testing web applications, automating browser tasks, and capturing screenshots without leaving your editor.
 
 {% callout type="info" title="Model Support Required" %}
 Browser Use requires an advanced agentic model. It is typically most reliable with recent high-capability models (for example Claude Sonnet 4 class models).
@@ -13,69 +13,96 @@ Browser Use requires an advanced agentic model. It is typically most reliable wi
 
 ## How Browser Use Works
 
-The `world` tool is implemented by the `@kilocode/world` package inside the Kilo CLI process. It launches a headless Chromium (via Playwright) and reuses one browser across actions in the same call. Computer use (driving the desktop) is **not implemented** in v1 — see `/home/aarav/apps/orca` for the future work.
+{% tabs %}
+{% tab label="VSCode" %}
 
-The tool surfaces screenshots as image attachments, and a11y snapshots as plain text. The agent can ask the model to "navigate, snapshot, click, screenshot" in a single tool call.
+Browser automation is built into the extension and requires no manual setup. Enable it from **Settings → Browser** and Kilo handles the rest automatically.
 
-## Quick start
+{% /tab %}
+{% tab label="CLI" %}
 
-Ask Kilo to drive a real browser. For example:
-
-- `Browse https://kilocode.ai and report what services are listed.`
-- `Open http://localhost:3000, scroll to the footer, and tell me if any links are broken.`
-- `Visit the glow repo and capture a screenshot of its PR list.`
-
-The agent will compose a `world` tool call like:
+Kilo Code uses [Playwright](https://playwright.dev/) for browser automation. Add it to your `kilo.jsonc` configuration:
 
 ```json
 {
-  "script": "navigate --url https://github.com/charmbracelet/glow/pulls --wait '#repository-content' ; snapshot ; click --ref e5 ; screenshot --out /tmp/glow.png"
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "-y", "@playwright/mcp@latest"]
+    }
+  }
 }
 ```
 
-## Verb grammar
+Playwright downloads Chromium automatically on first use.
 
-The `script` is parsed as a shell-like argv. Multiple actions share one browser session, so `navigate ; snapshot` re-uses the page from the navigate.
+{% /tab %}
+{% /tabs %}
 
-| Verb | Purpose |
-|---|---|
-| `status` | capability, sessions, chromium download state |
-| `navigate --url <u> [--wait <sel>]` | goto URL; optional selector wait |
-| `snapshot` | a11y tree with stable `[ref=eN]` ids |
-| `click --ref <id> \| --selector <sel>` | click by ref (preferred) or selector |
-| `type --text <s> [--ref <id> \| --selector <sel>]` | type into element or focused page |
-| `fill --value <s> [--ref <id> \| --selector <sel>]` | replace input value |
-| `press-key --chord <spec>` | key press or chord (e.g. `Control+a`) |
-| `hover --ref <id> \| --selector <sel>` | hover |
-| `drag --from <ref\|sel> --to <ref\|sel>` | drag between two targets |
-| `scroll --ref <id> --dx 0 --dy 400` | scroll element or page |
-| `screenshot --out <file> [--full] [--wait <ms>]` | write PNG; the tool returns it as an attachment |
-| `evaluate --js <code>` | run JS in the page, return JSON value |
-| `wait-for --selector <sel> \| --text <t> \| --url <u>` | wait for a condition |
-| `tabs list / open / select / close` | tab management |
-| `cookies get / set / clear` | cookie management |
-| `close` | tear down the session |
+## Using Browser Use
 
-Always prefer `snapshot` over `screenshot` — snapshots return stable `ref=eN` ids you can reuse. Use `screenshot` only when you need vision, and the tool will return the PNG as an image attachment you can look at directly.
+A typical browser interaction follows this pattern:
 
-## Settings
+1. Ask Kilo to visit a website
+2. Kilo launches the browser and shows you a screenshot
+3. Request additional actions (clicking, typing, scrolling)
+4. Kilo closes the browser when finished
 
-Browser-automation settings are available under the `kilo-code.new.world` namespace. These are read by the `world` tool at startup:
+For example:
 
-| Key | Default | Purpose |
+- `Open the browser and view our site.`
+- `Can you check if my website at https://kilocode.ai is displaying correctly?`
+- `Browse http://localhost:3000, scroll down to the bottom of the page and check if the footer information is displaying correctly.`
+
+## How Browser Actions Work
+
+{% tabs %}
+{% tab label="VSCode" %}
+
+Kilo launches a browser automatically when asked and returns screenshots after each action so you can see what's happening. It can navigate to URLs, click elements, fill in forms, scroll, hover, select from dropdowns, and drag and drop — all driven by natural language instructions in chat.
+
+{% /tab %}
+{% tab label="CLI" %}
+
+The Playwright MCP server provides a set of browser tools for interacting with web pages. These tools return screenshots and accessibility snapshots after each action.
+
+Key characteristics:
+
+- The browser launches automatically when a browser tool is invoked
+- Multiple browser tools can be used in sequence
+- Screenshots are captured after each action for visual feedback
+
+### Available Browser Tools
+
+| Tool | Description | When to Use |
 |---|---|---|
-| `kilo-code.new.world.enabled` | `true` | Master toggle. Off hides the tool from the model. |
-| `kilo-code.new.world.browser.enabled` | `true` | Sub-toggle for browser verbs. |
-| `kilo-code.new.world.browser.headless` | `true` | Run Chromium without a visible window. |
-| `kilo-code.new.world.browser.antiDetect` | `false` | Inject the Playwright anti-detection init script. |
+| `browser_navigate` | Navigates to a URL | Opening a web page |
+| `browser_click` | Clicks an element on the page | Interacting with buttons, links, etc. |
+| `browser_type` | Types text into an input element | Filling forms, search boxes |
+| `browser_screenshot` | Captures a screenshot of the page | Inspecting visual state |
+| `browser_scroll` | Scrolls the page or a specific area | Viewing content above or below |
+| `browser_hover` | Hovers over an element | Revealing tooltips or menus |
+| `browser_select` | Selects an option from a dropdown | Choosing from select elements |
+| `browser_drag` | Drags an element to a target | Drag-and-drop interactions |
 
-You can also set `executablePath` via the `browser.executablePath` key to use a system Chrome instead of the bundled Chromium.
+{% /tab %}
+{% /tabs %}
 
-{% callout type="warning" title="First run" %}
-The first invocation may trigger a ~150 MB Chromium download. The `status` verb reports the download state — if Chromium is missing, run `npx playwright install chromium`.
-{% /callout %}
+## Browser Use Settings
 
-## Permissions
+{% tabs %}
+{% tab label="VSCode" %}
 
-The `world` tool requests `webfetch` permission for each URL it navigates to, and `external_directory` permission for any `--out <file>` paths the script writes. Most users will want to add a rule like `{"permission": "world", "action": "allow"}` to their agent config so the tool runs without prompting for every call.
+Browser automation settings are available under **Settings → Browser**:
 
+- **Enable browser automation**: Toggle to enable or disable browser automation
+- **Headless mode**: Run the browser without a visible window (default: disabled)
+- **Use system Chrome**: Enabled by default — uses your installed Chrome. Disable to have Playwright download and use Chromium instead.
+
+{% /tab %}
+{% tab label="CLI" %}
+
+Browser automation is configured in your `kilo.jsonc` file. No additional settings are required — Playwright manages the browser lifecycle automatically.
+
+{% /tab %}
+{% /tabs %}

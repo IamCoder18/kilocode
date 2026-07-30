@@ -26,7 +26,6 @@ export namespace Launch {
 
   export function launchArgs(opts: Options): string[] {
     const args = [...opts.args]
-    args.push("--no-sandbox", "--disable-dev-shm-usage")
     args.push(`--window-size=${opts.viewport.width},${opts.viewport.height}`)
     return Array.from(new Set(args))
   }

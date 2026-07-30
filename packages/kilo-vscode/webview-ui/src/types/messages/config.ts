@@ -117,14 +117,19 @@ export type KiloEmbeddingModelCatalog = {
 
 export type IndexingStatus = SdkIndexingStatus
 
-export interface BrowserSettings {
-  enabled: boolean
-  useSystemChrome: boolean
-  headless: boolean
-}
-
 export type TerminalCommandDisplay = "expanded" | "collapsed"
 export type CodeEditDisplay = "expanded" | "collapsed"
+
+export interface WorldConfig {
+  browser?: {
+    headless?: boolean
+    anti_detect?: boolean
+    timeout_ms?: number
+    viewport?: { width: number; height: number }
+    executable_path?: string
+    args?: string[]
+  }
+}
 
 export interface Config {
   permission?: PermissionConfig
@@ -157,6 +162,7 @@ export interface Config {
   tools?: Record<string, boolean>
   auto_collapse_reasoning?: boolean
   experimental?: ExperimentalConfig
+  world?: WorldConfig
   sandbox?: SandboxConfig
   indexing?: IndexingConfig
 }

@@ -1,31 +1,54 @@
 import type { Action, ActionResult, RunOptions } from "../types"
 import { existsSync, readFileSync } from "node:fs"
+import path from "node:path"
 import { DaemonServer } from "./server"
+import { setConfig } from "../config"
+import { Status } from "../commands/browser/status"
+import { Navigate } from "../commands/browser/navigate"
+import { Snapshot } from "../commands/browser/snapshot"
+import { Click } from "../commands/browser/click"
+import { Type } from "../commands/browser/type"
+import { Fill } from "../commands/browser/fill"
+import { PressKey } from "../commands/browser/press-key"
+import { Hover } from "../commands/browser/hover"
+import { Drag } from "../commands/browser/drag"
+import { Scroll } from "../commands/browser/scroll"
+import { Screenshot } from "../commands/browser/screenshot"
+import { Evaluate } from "../commands/browser/evaluate"
+import { WaitFor } from "../commands/browser/wait-for"
+import { Tabs } from "../commands/browser/tabs"
+import { Cookies } from "../commands/browser/cookies"
+import { Close } from "../commands/browser/close"
+import { Runner } from "../core/browser/runner"
 
-// Commands and the Runner namespace are lazy-imported so that consumers of the
-// barrel (notably the opencode CLI binary, which only uses DaemonClient for
-// IPC) don't pull `playwright` + `chromium-bidi` into their bundle graph.
-// Bun's bundler follows dynamic `import()` calls when tracing the module
-// graph, so even though each `cmd()` call is a runtime dynamic import, the
-// *string* it imports is constructed at call time and isn't statically
-// resolved by the bundler.
-const cmdCache = new Map<string, Promise<unknown>>()
-const cmd = <T>(specifier: string, key: string): Promise<T> => {
-  const k = `${specifier}#${key}`
-  let p = cmdCache.get(k)
-  if (!p) {
-    p = import(/* @vite-ignore */ specifier) as Promise<unknown>
-    cmdCache.set(k, p)
+// Keep the command graph explicit so Bun includes Playwright and every command
+// in the Kilo executable that is reused for daemon mode.
+export async function dispatch(action: Action, opts: RunOptions = {}): Promise<ActionResult> {
+  opts.signal?.throwIfAborted()
+  const task = execute(action).then((result) => {
+    opts.signal?.throwIfAborted()
+    return result
+  })
+  if (!opts.signal) return task
+  const signal = opts.signal
+  const state: { reject?: (err: Error) => void } = {}
+  const stop = () => {
+    void Runner.shutdown().finally(() => state.reject?.(new Error("world action aborted")))
   }
-  return p as Promise<T>
+  const abort = new Promise<never>((_, reject) => {
+    state.reject = reject
+    signal.addEventListener("abort", stop, { once: true })
+    if (signal.aborted) stop()
+  })
+  return Promise.race([task, abort]).finally(() => signal.removeEventListener("abort", stop))
 }
 
-export async function dispatch(action: Action, _opts: RunOptions = {}): Promise<ActionResult> {
+async function execute(action: Action): Promise<ActionResult> {
   const startedAt = Date.now()
   try {
+    if (action.config) setConfig(action.config)
     const verb = action.verb
     if (verb === "status") {
-      const { Status } = await cmd<typeof import("../commands/browser/status")>("../commands/browser/status", "Status")
       return ok(action, startedAt, await Status.run())
     }
     if (verb === "daemon.status") {
@@ -33,19 +56,12 @@ export async function dispatch(action: Action, _opts: RunOptions = {}): Promise<
         ok: true,
         verb,
         args: action.args,
-        data: {
-          running: true,
-          pid: process.pid,
-          sessionID: process.env["KILO_WORLD_DAEMON_SESSION"] ?? null,
-          uptimeMs: process.uptime() * 1000,
-        },
+        data: DaemonServer.status(),
         durationMs: Date.now() - startedAt,
       }
     }
     if (verb === "daemon.stop") {
-      const resp = ok(action, startedAt, { stopping: true })
-      setImmediate(() => process.exit(0))
-      return resp
+      return ok(action, startedAt, { stopping: true })
     }
     if (verb === "daemon.list") {
       const { ensureHome, getConfig } = await import("../config")
@@ -56,16 +72,13 @@ export async function dispatch(action: Action, _opts: RunOptions = {}): Promise<
       for (const f of files) {
         const id = f.slice("daemon-".length, -".pid".length)
         const hs = DaemonServer.handshake(id)
-        if (hs) sessions.push({ sessionID: id, ...hs })
+        if (hs) sessions.push({ sessionID: hs.sessionID ?? id, pid: hs.pid, startedAt: hs.startedAt })
       }
       return ok(action, startedAt, { sessions })
     }
     if (verb === "navigate") {
       const url = required(action, "--url")
-      const { Navigate } = await cmd<typeof import("../commands/browser/navigate")>(
-        "../commands/browser/navigate",
-        "Navigate",
-      )
+      const timeout = numberFlag(action, "--timeout")
       return ok(
         action,
         startedAt,
@@ -73,20 +86,16 @@ export async function dispatch(action: Action, _opts: RunOptions = {}): Promise<
           url,
           ...(flagString(action, "--session") ? { session: flagString(action, "--session") } : {}),
           ...(flagString(action, "--wait") ? { wait: flagString(action, "--wait") } : {}),
-          ...(hasFlag(action, "--anti-detect") ? { antiDetect: true } : {}),
-          ...(flagString(action, "--timeout") ? { timeoutMs: Number(flagString(action, "--timeout")) } : {}),
+          ...(timeout !== undefined ? { timeoutMs: timeout } : {}),
         }),
       )
     }
     if (verb === "snapshot") {
-      const { Snapshot } = await cmd<typeof import("../commands/browser/snapshot")>(
-        "../commands/browser/snapshot",
-        "Snapshot",
-      )
-      return ok(action, startedAt, await Snapshot.run(flagString(action, "--session")))
+      const data = await Snapshot.run(flagString(action, "--session"))
+      return { ...ok(action, startedAt, data), refs: data.refs }
     }
     if (verb === "click") {
-      const { Click } = await cmd<typeof import("../commands/browser/click")>("../commands/browser/click", "Click")
+      const timeout = numberFlag(action, "--timeout")
       return ok(
         action,
         startedAt,
@@ -94,13 +103,13 @@ export async function dispatch(action: Action, _opts: RunOptions = {}): Promise<
           ...(flagString(action, "--ref") ? { ref: flagString(action, "--ref") } : {}),
           ...(flagString(action, "--selector") ? { selector: flagString(action, "--selector") } : {}),
           ...(flagString(action, "--session") ? { session: flagString(action, "--session") } : {}),
-          ...(flagString(action, "--timeout") ? { timeoutMs: Number(flagString(action, "--timeout")) } : {}),
+          ...(timeout !== undefined ? { timeoutMs: timeout } : {}),
         }),
       )
     }
     if (verb === "type") {
       const text = required(action, "--text")
-      const { Type } = await cmd<typeof import("../commands/browser/type")>("../commands/browser/type", "Type")
+      const delay = numberFlag(action, "--delay")
       return ok(
         action,
         startedAt,
@@ -109,13 +118,12 @@ export async function dispatch(action: Action, _opts: RunOptions = {}): Promise<
           ...(flagString(action, "--ref") ? { ref: flagString(action, "--ref") } : {}),
           ...(flagString(action, "--selector") ? { selector: flagString(action, "--selector") } : {}),
           ...(flagString(action, "--session") ? { session: flagString(action, "--session") } : {}),
-          ...(flagString(action, "--delay") ? { delay: Number(flagString(action, "--delay")) } : {}),
+          ...(delay !== undefined ? { delay } : {}),
         }),
       )
     }
     if (verb === "fill") {
       const value = required(action, "--value")
-      const { Fill } = await cmd<typeof import("../commands/browser/fill")>("../commands/browser/fill", "Fill")
       return ok(
         action,
         startedAt,
@@ -129,10 +137,6 @@ export async function dispatch(action: Action, _opts: RunOptions = {}): Promise<
       )
     }
     if (verb === "press-key") {
-      const { PressKey } = await cmd<typeof import("../commands/browser/press-key")>(
-        "../commands/browser/press-key",
-        "PressKey",
-      )
       return ok(
         action,
         startedAt,
@@ -143,10 +147,6 @@ export async function dispatch(action: Action, _opts: RunOptions = {}): Promise<
       )
     }
     if (verb === "hover") {
-      const { Hover } = await cmd<typeof import("../commands/browser/hover")>(
-        "../commands/browser/hover",
-        "Hover",
-      )
       return ok(
         action,
         startedAt,
@@ -158,7 +158,6 @@ export async function dispatch(action: Action, _opts: RunOptions = {}): Promise<
       )
     }
     if (verb === "drag") {
-      const { Drag } = await cmd<typeof import("../commands/browser/drag")>("../commands/browser/drag", "Drag")
       return ok(
         action,
         startedAt,
@@ -170,16 +169,12 @@ export async function dispatch(action: Action, _opts: RunOptions = {}): Promise<
       )
     }
     if (verb === "scroll") {
-      const { Scroll } = await cmd<typeof import("../commands/browser/scroll")>(
-        "../commands/browser/scroll",
-        "Scroll",
-      )
       return ok(
         action,
         startedAt,
         await Scroll.run({
-          dx: Number(flagString(action, "--dx") ?? "0"),
-          dy: Number(flagString(action, "--dy") ?? "0"),
+          dx: numberFlag(action, "--dx") ?? 0,
+          dy: numberFlag(action, "--dy") ?? 0,
           ...(flagString(action, "--ref") ? { ref: flagString(action, "--ref") } : {}),
           ...(flagString(action, "--selector") ? { selector: flagString(action, "--selector") } : {}),
           ...(flagString(action, "--session") ? { session: flagString(action, "--session") } : {}),
@@ -188,17 +183,15 @@ export async function dispatch(action: Action, _opts: RunOptions = {}): Promise<
     }
     if (verb === "screenshot") {
       const typeRaw = flagString(action, "--type")
-      const { Screenshot } = await cmd<typeof import("../commands/browser/screenshot")>(
-        "../commands/browser/screenshot",
-        "Screenshot",
-      )
+      const wait = numberFlag(action, "--wait")
+      const quality = numberFlag(action, "--quality")
       const data = await Screenshot.run({
-        out: required(action, "--out"),
+        out: resolvePath(action, required(action, "--out")),
         ...(hasFlag(action, "--full") ? { full: true } : {}),
-        ...(flagString(action, "--wait") ? { waitMs: Number(flagString(action, "--wait")) } : {}),
+        ...(wait !== undefined ? { waitMs: wait } : {}),
         ...(flagString(action, "--session") ? { session: flagString(action, "--session") } : {}),
         ...(typeRaw === "png" || typeRaw === "jpeg" ? { type: typeRaw } : {}),
-        ...(flagString(action, "--quality") ? { quality: Number(flagString(action, "--quality")) } : {}),
+        ...(quality !== undefined ? { quality } : {}),
       })
       return {
         ok: true,
@@ -211,10 +204,6 @@ export async function dispatch(action: Action, _opts: RunOptions = {}): Promise<
     }
     if (verb === "evaluate") {
       const js = await resolveEvaluateJs(action)
-      const { Evaluate } = await cmd<typeof import("../commands/browser/evaluate")>(
-        "../commands/browser/evaluate",
-        "Evaluate",
-      )
       return ok(
         action,
         startedAt,
@@ -225,10 +214,7 @@ export async function dispatch(action: Action, _opts: RunOptions = {}): Promise<
       )
     }
     if (verb === "wait-for") {
-      const { WaitFor } = await cmd<typeof import("../commands/browser/wait-for")>(
-        "../commands/browser/wait-for",
-        "WaitFor",
-      )
+      const timeout = numberFlag(action, "--timeout")
       return ok(
         action,
         startedAt,
@@ -236,7 +222,7 @@ export async function dispatch(action: Action, _opts: RunOptions = {}): Promise<
           ...(flagString(action, "--selector") ? { selector: flagString(action, "--selector") } : {}),
           ...(flagString(action, "--text") ? { text: flagString(action, "--text") } : {}),
           ...(flagString(action, "--url") ? { url: flagString(action, "--url") } : {}),
-          ...(flagString(action, "--timeout") ? { timeoutMs: Number(flagString(action, "--timeout")) } : {}),
+          ...(timeout !== undefined ? { timeoutMs: timeout } : {}),
           ...(flagString(action, "--session") ? { session: flagString(action, "--session") } : {}),
         }),
       )
@@ -244,14 +230,9 @@ export async function dispatch(action: Action, _opts: RunOptions = {}): Promise<
     if (verb === "tabs") return ok(action, startedAt, await dispatchTabs(action))
     if (verb === "cookies") return ok(action, startedAt, await dispatchCookies(action))
     if (verb === "close") {
-      const { Close } = await cmd<typeof import("../commands/browser/close")>("../commands/browser/close", "Close")
       return ok(action, startedAt, await Close.run(flagString(action, "--session")))
     }
     if (verb === "shutdown") {
-      const { Runner } = await cmd<typeof import("../core/browser/runner")>(
-        "../core/browser/runner",
-        "Runner",
-      )
       await Runner.shutdown()
       return ok(action, startedAt, { shutdown: "browser" })
     }
@@ -270,7 +251,6 @@ export async function dispatch(action: Action, _opts: RunOptions = {}): Promise<
 
 async function dispatchTabs(action: Action): Promise<unknown> {
   const sub = action.args[0] ?? "list"
-  const { Tabs } = await cmd<typeof import("../commands/browser/tabs")>("../commands/browser/tabs", "Tabs")
   if (sub === "list") return Tabs.list(flagString(action, "--session"))
   if (sub === "open") {
     return Tabs.open({
@@ -280,14 +260,14 @@ async function dispatchTabs(action: Action): Promise<unknown> {
   }
   if (sub === "select") {
     return Tabs.select({
-      index: Number(required(action, "--index")),
+      index: requiredNumber(action, "--index"),
       ...(flagString(action, "--session") ? { session: flagString(action, "--session") } : {}),
     })
   }
   if (sub === "close") {
     const idx = flagString(action, "--index")
     return Tabs.close({
-      ...(idx ? { index: Number(idx) } : {}),
+      ...(idx !== undefined ? { index: requiredNumber(action, "--index") } : {}),
       ...(flagString(action, "--session") ? { session: flagString(action, "--session") } : {}),
     })
   }
@@ -296,10 +276,6 @@ async function dispatchTabs(action: Action): Promise<unknown> {
 
 async function dispatchCookies(action: Action): Promise<unknown> {
   const sub = action.args[0] ?? "get"
-  const { Cookies } = await cmd<typeof import("../commands/browser/cookies")>(
-    "../commands/browser/cookies",
-    "Cookies",
-  )
   if (sub === "get") {
     return Cookies.get({
       ...(flagString(action, "--domain") ? { domain: flagString(action, "--domain") } : {}),
@@ -339,8 +315,15 @@ async function resolveEvaluateJs(action: Action): Promise<string> {
   if (inline !== undefined) return inline
   const file = flagString(action, "--js-file")
   if (file === undefined) throw new Error("evaluate requires --js <code> or --js-file <path>")
-  if (!existsSync(file)) throw new Error(`--js-file not found: ${file}`)
-  return readFileSync(file, "utf8")
+  const target = resolvePath(action, file)
+  if (!existsSync(target)) throw new Error(`--js-file not found: ${target}`)
+  return readFileSync(target, "utf8")
+}
+
+function resolvePath(action: Action, file: string): string {
+  if (path.isAbsolute(file)) return file
+  if (!action.directory) return file
+  return path.resolve(action.directory, file)
 }
 
 function flagString(action: Action, name: string): string | undefined {
@@ -360,4 +343,18 @@ function required(action: Action, name: string): string {
   const v = flagString(action, name)
   if (v === undefined) throw new Error(`missing required flag: ${name}`)
   return v
+}
+
+function numberFlag(action: Action, name: string): number | undefined {
+  const value = flagString(action, name)
+  if (value === undefined) return undefined
+  const number = Number(value)
+  if (!Number.isFinite(number)) throw new Error(`${name} must be a finite number`)
+  return number
+}
+
+function requiredNumber(action: Action, name: string): number {
+  const value = numberFlag(action, name)
+  if (value === undefined) throw new Error(`missing required flag: ${name}`)
+  return value
 }
