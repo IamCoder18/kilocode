@@ -49,4 +49,10 @@ describe("Launch.fromConfig", () => {
     const out = Launch.fromConfig(cfg({}))
     expect(out.executablePath).toBeUndefined()
   })
+
+  test("hides only headless Chromium launches on Windows", () => {
+    expect(Launch.hide(true, "win32")).toBe(true)
+    expect(Launch.hide(false, "win32")).toBe(false)
+    expect(Launch.hide(true, "linux")).toBe(false)
+  })
 })

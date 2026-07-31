@@ -31,6 +31,10 @@ export namespace Launch {
     return Array.from(new Set(args))
   }
 
+  export function hide(headless: boolean, platform: NodeJS.Platform = process.platform): boolean {
+    return platform === "win32" && headless
+  }
+
   export function contextOptions(opts: Options): {
     viewport: { width: number; height: number }
     userAgent?: string

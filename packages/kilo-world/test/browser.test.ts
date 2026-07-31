@@ -16,6 +16,19 @@ describe.skipIf(!available)("browser commands", () => {
     expect(browsers[2]).toBe(browsers[0])
   })
 
+  test("restarts Chromium when browser settings change", async () => {
+    const config = World.currentConfig()
+    const first = await Runner.ensureBrowser()
+    await Runner.configure({
+      ...config,
+      browser: { ...config.browser, args: [...config.browser.args, "--disable-notifications"] },
+    })
+    const second = await Runner.ensureBrowser()
+    expect(first.isConnected()).toBe(false)
+    expect(second).not.toBe(first)
+    await Runner.configure(config)
+  })
+
   test("assigns distinct refs to elements with the same accessible name", async () => {
     const result = await World.run(
       'navigate --url "data:text/html,<button id=one>Same</button><button id=two>Same</button>" ; snapshot ; click --ref e2 ; evaluate --js "document.activeElement.id"',

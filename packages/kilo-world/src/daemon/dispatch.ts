@@ -2,7 +2,6 @@ import type { Action, ActionResult, RunOptions } from "../types"
 import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
 import { DaemonServer } from "./server"
-import { setConfig } from "../config"
 import { Status } from "../commands/browser/status"
 import { Navigate } from "../commands/browser/navigate"
 import { Snapshot } from "../commands/browser/snapshot"
@@ -46,7 +45,7 @@ export async function dispatch(action: Action, opts: RunOptions = {}): Promise<A
 async function execute(action: Action): Promise<ActionResult> {
   const startedAt = Date.now()
   try {
-    if (action.config) setConfig(action.config)
+    if (action.config) await Runner.configure(action.config)
     const verb = action.verb
     if (verb === "status") {
       return ok(action, startedAt, await Status.run())

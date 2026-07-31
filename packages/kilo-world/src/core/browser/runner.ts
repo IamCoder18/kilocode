@@ -2,9 +2,9 @@ import { existsSync, mkdirSync, rmSync } from "node:fs"
 import childProcess, { type ChildProcess, type SpawnOptions, type SpawnSyncOptions } from "node:child_process"
 import { join } from "node:path"
 import { chromium, type Browser, type BrowserContext, type LaunchOptions, type Page } from "playwright"
-import { ensureHome, getConfig } from "../../config"
+import { ensureHome, getConfig, setConfig } from "../../config"
 import { Launch } from "./launch"
-import type { BrowserCapability, SessionInfo } from "../../types"
+import type { BrowserCapability, SessionInfo, WorldConfig } from "../../types"
 
 type Live = {
   name: string
@@ -50,11 +50,12 @@ function buildLaunchOptions(): LaunchOptions {
 async function launch(timeout?: number): Promise<Browser> {
   const opts = buildLaunchOptions()
   if (timeout !== undefined) opts.timeout = timeout
-  if (process.platform !== "win32") return chromium.launch(opts)
+  if (!Launch.hide(opts.headless === true)) return chromium.launch(opts)
 
   // Playwright's browser process launcher omits windowsHide. Patch the shared
-  // child_process binding only for the duration of launch so its supported
-  // headless-shell executable does not flash a console window.
+  // child_process binding only for headless launches so the console-subsystem
+  // shell does not flash a window. Applying windowsHide to headed chrome.exe
+  // also hides its browser window.
   type Spawn = (command: string, args: readonly string[], options: SpawnOptions) => ChildProcess
   const api = childProcess as unknown as { spawn: Spawn; spawnSync: typeof childProcess.spawnSync }
   const spawn = api.spawn
@@ -74,6 +75,14 @@ async function launch(timeout?: number): Promise<Browser> {
 }
 
 export namespace Runner {
+  export async function configure(cfg: WorldConfig): Promise<void> {
+    const current = Launch.fromConfig(getConfig())
+    const next = Launch.fromConfig(cfg)
+    setConfig(cfg)
+    if (JSON.stringify(current) === JSON.stringify(next)) return
+    await shutdown()
+  }
+
   export function version(): string | undefined {
     return activeBrowser?.isConnected() ? activeBrowser.version() : undefined
   }
