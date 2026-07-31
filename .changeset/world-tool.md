@@ -4,4 +4,4 @@
 "@kilocode/world": minor
 ---
 
-Add the `world` tool for persistent, permission-aware browser automation. Run its isolated browser daemon with Node and Playwright's native browser protocol, bundle the daemon with the VS Code extension, preserve Windows screenshots and visible headed browser windows, apply headed and headless setting changes to running sessions, use the configured Chromium installation without downloading a browser automatically, and expose browser enablement and headless mode in Kilo settings.
+Add the built-in `world` tool for browser automation, letting Kilo navigate sites, click, type, and capture screenshots from chat. It runs in a persistent, isolated browser session with per-action permissions and an optional "use system Chrome" setting. Enable it from Settings → Browser, with the bundled daemon available in the CLI and VS Code extension.
