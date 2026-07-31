@@ -23,6 +23,11 @@ function home(): string {
   return ensureHome(getConfig().home)
 }
 
+function folder(home: string, name: string): string {
+  const key = Buffer.from(name).toString("base64url") || "default"
+  return join(home, "contexts", key)
+}
+
 function track(name: string, url?: string): void {
   const now = Date.now()
   const existing = sessions.get(name)
@@ -131,7 +136,7 @@ export namespace Runner {
       home: home(),
     }
     activeContexts.set(name, live)
-    mkdirSync(join(live.home, "contexts", name), { recursive: true })
+    mkdirSync(folder(live.home, name), { recursive: true })
     track(name)
     return live
   }
@@ -142,7 +147,7 @@ export namespace Runner {
     activeContexts.delete(name)
     sessions.delete(name)
     await live.context.close()
-    rmSync(join(live.home, "contexts", name), { recursive: true, force: true })
+    rmSync(folder(live.home, name), { recursive: true, force: true })
     return true
   }
 

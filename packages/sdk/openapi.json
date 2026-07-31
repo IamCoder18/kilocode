@@ -23685,15 +23685,6 @@
             "$ref": "#/components/schemas/EventServerInstanceDisposed"
           },
           {
-            "$ref": "#/components/schemas/EventSessionTurnOpen"
-          },
-          {
-            "$ref": "#/components/schemas/EventSessionTurnClose"
-          },
-          {
-            "$ref": "#/components/schemas/EventSessionQueueChanged"
-          },
-          {
             "$ref": "#/components/schemas/EventSessionNetworkAsked"
           },
           {
@@ -23719,6 +23710,12 @@
           },
           {
             "$ref": "#/components/schemas/EventInteractive_terminalDeleted"
+          },
+          {
+            "$ref": "#/components/schemas/EventSessionTurnOpen"
+          },
+          {
+            "$ref": "#/components/schemas/EventSessionTurnClose"
           },
           {
             "$ref": "#/components/schemas/EventSandboxStatusChanged"
@@ -23748,10 +23745,10 @@
             "$ref": "#/components/schemas/EventKilocodeNotebookCancelled"
           },
           {
-            "$ref": "#/components/schemas/EventKilo-sessionsRemote-status-changed"
+            "$ref": "#/components/schemas/EventLspClientDiagnostics"
           },
           {
-            "$ref": "#/components/schemas/EventLspClientDiagnostics"
+            "$ref": "#/components/schemas/EventKilo-sessionsRemote-status-changed"
           },
           {
             "$ref": "#/components/schemas/EventMemoryStatus1"
@@ -24009,10 +24006,10 @@
             "$ref": "#/components/schemas/EventProjectUpdated"
           },
           {
-            "$ref": "#/components/schemas/EventVcsBranchUpdated"
+            "$ref": "#/components/schemas/EventLspUpdated"
           },
           {
-            "$ref": "#/components/schemas/EventLspUpdated"
+            "$ref": "#/components/schemas/EventVcsBranchUpdated"
           },
           {
             "$ref": "#/components/schemas/EventWorkspaceReady"
@@ -26822,15 +26819,6 @@
                 "$ref": "#/components/schemas/EventServerInstanceDisposed"
               },
               {
-                "$ref": "#/components/schemas/EventSessionTurnOpen"
-              },
-              {
-                "$ref": "#/components/schemas/EventSessionTurnClose"
-              },
-              {
-                "$ref": "#/components/schemas/EventSessionQueueChanged"
-              },
-              {
                 "$ref": "#/components/schemas/EventSessionNetworkAsked"
               },
               {
@@ -26856,6 +26844,12 @@
               },
               {
                 "$ref": "#/components/schemas/EventInteractive_terminalDeleted"
+              },
+              {
+                "$ref": "#/components/schemas/EventSessionTurnOpen"
+              },
+              {
+                "$ref": "#/components/schemas/EventSessionTurnClose"
               },
               {
                 "$ref": "#/components/schemas/EventSandboxStatusChanged"
@@ -26885,10 +26879,10 @@
                 "$ref": "#/components/schemas/EventKilocodeNotebookCancelled"
               },
               {
-                "$ref": "#/components/schemas/EventKilo-sessionsRemote-status-changed"
+                "$ref": "#/components/schemas/EventLspClientDiagnostics"
               },
               {
-                "$ref": "#/components/schemas/EventLspClientDiagnostics"
+                "$ref": "#/components/schemas/EventKilo-sessionsRemote-status-changed"
               },
               {
                 "$ref": "#/components/schemas/EventMemoryStatus"
@@ -27146,10 +27140,10 @@
                 "$ref": "#/components/schemas/EventProjectUpdated"
               },
               {
-                "$ref": "#/components/schemas/EventVcsBranchUpdated"
+                "$ref": "#/components/schemas/EventLspUpdated"
               },
               {
-                "$ref": "#/components/schemas/EventLspUpdated"
+                "$ref": "#/components/schemas/EventVcsBranchUpdated"
               },
               {
                 "$ref": "#/components/schemas/EventWorkspaceReady"
@@ -28719,6 +28713,10 @@
                   "executable_path": {
                     "type": "string"
                   },
+                  "use_system_chrome": {
+                    "type": "boolean",
+                    "description": "Use the system-installed Google Chrome instead of the bundled Chromium. Falls back to bundled Chromium when Chrome is not found."
+                  },
                   "args": {
                     "type": "array",
                     "items": {
@@ -28729,7 +28727,8 @@
                 "additionalProperties": false
               }
             },
-            "additionalProperties": false
+            "additionalProperties": false,
+            "description": "Browser runtime settings for the world tool"
           },
           "compaction": {
             "type": "object",
@@ -28810,7 +28809,8 @@
                 "type": "boolean"
               },
               "world_browser": {
-                "type": "boolean"
+                "type": "boolean",
+                "description": "Enable the World browser tool. The browser runs headless by default and returns an inline image after every visual action. Disable to hide browser capabilities from the agent."
               },
               "primary_tools": {
                 "type": "array",
@@ -34447,96 +34447,6 @@
         "required": ["id", "type", "properties"],
         "additionalProperties": false
       },
-      "EventSessionTurnOpen": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": ["session.turn.open"]
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "sessionID": {
-                "type": "string",
-                "pattern": "^ses"
-              }
-            },
-            "required": ["sessionID"],
-            "additionalProperties": false
-          }
-        },
-        "required": ["id", "type", "properties"],
-        "additionalProperties": false
-      },
-      "EventSessionTurnClose": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": ["session.turn.close"]
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "sessionID": {
-                "type": "string",
-                "pattern": "^ses"
-              },
-              "parentID": {
-                "type": "string",
-                "pattern": "^ses"
-              },
-              "reason": {
-                "type": "string",
-                "enum": ["completed", "error", "interrupted"]
-              }
-            },
-            "required": ["sessionID", "reason"],
-            "additionalProperties": false
-          }
-        },
-        "required": ["id", "type", "properties"],
-        "additionalProperties": false
-      },
-      "EventSessionQueueChanged": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": ["session.queue.changed"]
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "sessionID": {
-                "type": "string",
-                "pattern": "^ses"
-              },
-              "queued": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "pattern": "^msg"
-                }
-              }
-            },
-            "required": ["sessionID", "queued"],
-            "additionalProperties": false
-          }
-        },
-        "required": ["id", "type", "properties"],
-        "additionalProperties": false
-      },
       "EventSessionNetworkAsked": {
         "type": "object",
         "properties": {
@@ -34783,6 +34693,64 @@
               }
             },
             "required": ["terminalID", "sessionID"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["id", "type", "properties"],
+        "additionalProperties": false
+      },
+      "EventSessionTurnOpen": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["session.turn.open"]
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string",
+                "pattern": "^ses"
+              }
+            },
+            "required": ["sessionID"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["id", "type", "properties"],
+        "additionalProperties": false
+      },
+      "EventSessionTurnClose": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["session.turn.close"]
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string",
+                "pattern": "^ses"
+              },
+              "parentID": {
+                "type": "string",
+                "pattern": "^ses"
+              },
+              "reason": {
+                "type": "string",
+                "enum": ["completed", "error", "interrupted"]
+              }
+            },
+            "required": ["sessionID", "reason"],
             "additionalProperties": false
           }
         },
@@ -35098,33 +35066,6 @@
         "required": ["id", "type", "properties"],
         "additionalProperties": false
       },
-      "EventKilo-sessionsRemote-status-changed": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": ["kilo-sessions.remote-status-changed"]
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "enabled": {
-                "type": "boolean"
-              },
-              "connected": {
-                "type": "boolean"
-              }
-            },
-            "required": ["enabled", "connected"],
-            "additionalProperties": false
-          }
-        },
-        "required": ["id", "type", "properties"],
-        "additionalProperties": false
-      },
       "EventLspClientDiagnostics": {
         "type": "object",
         "properties": {
@@ -35146,6 +35087,33 @@
               }
             },
             "required": ["serverID", "path"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["id", "type", "properties"],
+        "additionalProperties": false
+      },
+      "EventKilo-sessionsRemote-status-changed": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["kilo-sessions.remote-status-changed"]
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "connected": {
+                "type": "boolean"
+              }
+            },
+            "required": ["enabled", "connected"],
             "additionalProperties": false
           }
         },
@@ -39711,6 +39679,24 @@
         "required": ["id", "type", "properties"],
         "additionalProperties": false
       },
+      "EventLspUpdated": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["lsp.updated"]
+          },
+          "properties": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        "required": ["id", "type", "properties"],
+        "additionalProperties": false
+      },
       "EventVcsBranchUpdated": {
         "type": "object",
         "properties": {
@@ -39729,24 +39715,6 @@
               }
             },
             "additionalProperties": false
-          }
-        },
-        "required": ["id", "type", "properties"],
-        "additionalProperties": false
-      },
-      "EventLspUpdated": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": ["lsp.updated"]
-          },
-          "properties": {
-            "type": "object",
-            "properties": {}
           }
         },
         "required": ["id", "type", "properties"],

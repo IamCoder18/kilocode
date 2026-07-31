@@ -6,9 +6,6 @@ export type ClientOptions = {
 
 export type Event =
   | EventServerInstanceDisposed
-  | EventSessionTurnOpen
-  | EventSessionTurnClose
-  | EventSessionQueueChanged
   | EventSessionNetworkAsked
   | EventSessionNetworkReplied
   | EventSessionNetworkRejected
@@ -18,6 +15,8 @@ export type Event =
   | EventInteractiveTerminalUpdated
   | EventInteractiveTerminalData
   | EventInteractiveTerminalDeleted
+  | EventSessionTurnOpen
+  | EventSessionTurnClose
   | EventSandboxStatusChanged
   | EventSuggestionShown
   | EventSuggestionAccepted
@@ -27,8 +26,8 @@ export type Event =
   | EventKilocodeAgentManagerCancelled
   | EventKilocodeNotebookRequested
   | EventKilocodeNotebookCancelled
-  | EventKiloSessionsRemoteStatusChanged
   | EventLspClientDiagnostics
+  | EventKiloSessionsRemoteStatusChanged
   | EventMemoryStatus1
   | EventMemoryUpdated1
   | EventMemoryError1
@@ -114,8 +113,8 @@ export type Event =
   | EventSessionCompacted
   | EventCommandExecuted
   | EventProjectUpdated
-  | EventVcsBranchUpdated
   | EventLspUpdated
+  | EventVcsBranchUpdated
   | EventWorkspaceReady
   | EventWorkspaceFailed
   | EventWorkspaceStatus
@@ -1043,9 +1042,6 @@ export type GlobalEvent = {
   workspace?: string
   payload:
     | EventServerInstanceDisposed
-    | EventSessionTurnOpen
-    | EventSessionTurnClose
-    | EventSessionQueueChanged
     | EventSessionNetworkAsked
     | EventSessionNetworkReplied
     | EventSessionNetworkRejected
@@ -1055,6 +1051,8 @@ export type GlobalEvent = {
     | EventInteractiveTerminalUpdated
     | EventInteractiveTerminalData
     | EventInteractiveTerminalDeleted
+    | EventSessionTurnOpen
+    | EventSessionTurnClose
     | EventSandboxStatusChanged
     | EventSuggestionShown
     | EventSuggestionAccepted
@@ -1064,8 +1062,8 @@ export type GlobalEvent = {
     | EventKilocodeAgentManagerCancelled
     | EventKilocodeNotebookRequested
     | EventKilocodeNotebookCancelled
-    | EventKiloSessionsRemoteStatusChanged
     | EventLspClientDiagnostics
+    | EventKiloSessionsRemoteStatusChanged
     | EventMemoryStatus
     | EventMemoryUpdated
     | EventMemoryError
@@ -1151,8 +1149,8 @@ export type GlobalEvent = {
     | EventSessionCompacted
     | EventCommandExecuted
     | EventProjectUpdated
-    | EventVcsBranchUpdated
     | EventLspUpdated
+    | EventVcsBranchUpdated
     | EventWorkspaceReady
     | EventWorkspaceFailed
     | EventWorkspaceStatus
@@ -1696,6 +1694,9 @@ export type Config = {
     max_lines?: number
     max_bytes?: number
   }
+  /**
+   * Browser runtime settings for the world tool
+   */
   world?: {
     browser?: {
       headless?: boolean
@@ -1706,6 +1707,10 @@ export type Config = {
         height: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
       }
       executable_path?: string
+      /**
+       * Use the system-installed Google Chrome instead of the bundled Chromium. Falls back to bundled Chromium when Chrome is not found.
+       */
+      use_system_chrome?: boolean
       args?: Array<string>
     }
   }
@@ -1730,6 +1735,9 @@ export type Config = {
     native_notebook_tools?: boolean
     speech_to_text_model?: string
     openTelemetry?: boolean
+    /**
+     * Enable the World browser tool. The browser runs headless by default and returns an inline image after every visual action. Disable to hide browser capabilities from the agent.
+     */
     world_browser?: boolean
     primary_tools?: Array<string>
     continue_loop_on_deny?: boolean
@@ -3535,33 +3543,6 @@ export type EventServerInstanceDisposed = {
   }
 }
 
-export type EventSessionTurnOpen = {
-  id: string
-  type: "session.turn.open"
-  properties: {
-    sessionID: string
-  }
-}
-
-export type EventSessionTurnClose = {
-  id: string
-  type: "session.turn.close"
-  properties: {
-    sessionID: string
-    parentID?: string
-    reason: "completed" | "error" | "interrupted"
-  }
-}
-
-export type EventSessionQueueChanged = {
-  id: string
-  type: "session.queue.changed"
-  properties: {
-    sessionID: string
-    queued: Array<string>
-  }
-}
-
 export type EventSessionNetworkAsked = {
   id: string
   type: "session.network.asked"
@@ -3640,6 +3621,24 @@ export type EventInteractiveTerminalDeleted = {
   properties: {
     terminalID: string
     sessionID: string
+  }
+}
+
+export type EventSessionTurnOpen = {
+  id: string
+  type: "session.turn.open"
+  properties: {
+    sessionID: string
+  }
+}
+
+export type EventSessionTurnClose = {
+  id: string
+  type: "session.turn.close"
+  properties: {
+    sessionID: string
+    parentID?: string
+    reason: "completed" | "error" | "interrupted"
   }
 }
 
@@ -3746,21 +3745,21 @@ export type EventKilocodeNotebookCancelled = {
   }
 }
 
-export type EventKiloSessionsRemoteStatusChanged = {
-  id: string
-  type: "kilo-sessions.remote-status-changed"
-  properties: {
-    enabled: boolean
-    connected: boolean
-  }
-}
-
 export type EventLspClientDiagnostics = {
   id: string
   type: "lsp.client.diagnostics"
   properties: {
     serverID: string
     path: string
+  }
+}
+
+export type EventKiloSessionsRemoteStatusChanged = {
+  id: string
+  type: "kilo-sessions.remote-status-changed"
+  properties: {
+    enabled: boolean
+    connected: boolean
   }
 }
 
@@ -4960,19 +4959,19 @@ export type EventProjectUpdated = {
   }
 }
 
-export type EventVcsBranchUpdated = {
-  id: string
-  type: "vcs.branch.updated"
-  properties: {
-    branch?: string
-  }
-}
-
 export type EventLspUpdated = {
   id: string
   type: "lsp.updated"
   properties: {
     [key: string]: unknown
+  }
+}
+
+export type EventVcsBranchUpdated = {
+  id: string
+  type: "vcs.branch.updated"
+  properties: {
+    branch?: string
   }
 }
 

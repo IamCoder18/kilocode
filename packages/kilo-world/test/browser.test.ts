@@ -1,5 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test"
-import { existsSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import { chromium } from "playwright"
 import { World } from "../src"
 import { Runner } from "../src/core/browser/runner"
@@ -27,6 +29,24 @@ describe.skipIf(!available)("browser commands", () => {
     expect(first.isConnected()).toBe(false)
     expect(second).not.toBe(first)
     await Runner.configure(config)
+  })
+
+  test("keeps session state inside the world home", async () => {
+    const config = World.currentConfig()
+    const root = mkdtempSync(join(tmpdir(), "kilo-world-session-"))
+    const victim = join(root, "victim")
+    const marker = join(victim, "marker")
+    mkdirSync(victim)
+    writeFileSync(marker, "keep")
+    try {
+      await Runner.configure({ ...config, home: join(root, "state") })
+      await Runner.attach("../../victim")
+      await Runner.close("../../victim")
+      expect(existsSync(marker)).toBe(true)
+    } finally {
+      await Runner.configure(config)
+      rmSync(root, { recursive: true, force: true })
+    }
   })
 
   test("assigns distinct refs to elements with the same accessible name", async () => {

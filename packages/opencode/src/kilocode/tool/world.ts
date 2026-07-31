@@ -11,6 +11,7 @@ import type { ActionResult, RunResult } from "@kilocode/world/types"
 import * as Log from "@opencode-ai/core/util/log"
 import { inspect } from "./world-script"
 import type { WorldConfig } from "@kilocode/world/types"
+import { resolve } from "./world-config"
 
 const log = Log.create({ service: "kilocode-tool-world" })
 
@@ -137,38 +138,6 @@ function readInlineData(absPath: string, mime: string = "image/png"): string | n
   }
 }
 
-function configure(cfg: {
-  world?: {
-    browser?: {
-      headless?: boolean
-      anti_detect?: boolean
-      timeout_ms?: number
-      viewport?: { width: number; height: number }
-      executable_path?: string
-      use_system_chrome?: boolean
-      args?: string[]
-    }
-  }
-}): WorldConfig {
-  const current = World.currentConfig()
-  const world = cfg.world
-  if (!world) return current
-  const browser = world.browser ?? {}
-  return World.configure({
-    browser: {
-      ...current.browser,
-      ...(browser.headless !== undefined ? { headless: browser.headless } : {}),
-      ...(browser.anti_detect !== undefined ? { antiDetect: browser.anti_detect } : {}),
-      ...(browser.timeout_ms !== undefined ? { timeoutMs: browser.timeout_ms } : {}),
-      ...(browser.viewport ? { viewport: browser.viewport } : {}),
-      ...(browser.args ? { args: [...browser.args] } : {}),
-      ...(browser.executable_path ? { executablePath: browser.executable_path } : {}),
-      ...(browser.use_system_chrome !== undefined ? { useSystemChrome: browser.use_system_chrome } : {}),
-    },
-    home: current.home,
-  })
-}
-
 function screenshotPath(config: WorldConfig, session: string, call: string | undefined): string {
   const name = `${session}-${call ?? Date.now()}`.replace(/[^a-zA-Z0-9_.-]/g, "_")
   return path.join(config.home, "screenshots", `${name}.jpg`)
@@ -184,7 +153,7 @@ export const WorldTool = Tool.define(
       execute: (params: Params, ctx: Tool.Context) =>
         Effect.gen(function* () {
           const inst = yield* InstanceState.context
-          const config = configure(yield* configs.get())
+          const config = resolve(yield* configs.get())
           const script = inspect(params.script, inst.directory)
 
           yield* ctx.ask({
