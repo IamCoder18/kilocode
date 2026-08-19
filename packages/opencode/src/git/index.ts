@@ -85,6 +85,9 @@ export interface Interface {
   readonly stats: (cwd: string, ref: string) => Effect.Effect<Stat[]>
   readonly patch: (cwd: string, ref: string, file: string, options?: PatchOptions) => Effect.Effect<Patch>
   readonly patchAll: (cwd: string, ref: string, options?: PatchOptions) => Effect.Effect<Patch>
+  readonly diffRefs: (cwd: string, from: string, to: string) => Effect.Effect<Item[]> // kilocode_change
+  readonly statsRefs: (cwd: string, from: string, to: string) => Effect.Effect<Stat[]> // kilocode_change
+  readonly patchAllRefs: (cwd: string, from: string, to: string, options?: PatchOptions) => Effect.Effect<Patch> // kilocode_change
   readonly patchUntracked: (cwd: string, file: string, options?: PatchOptions) => Effect.Effect<Patch>
   readonly statUntracked: (cwd: string, file: string) => Effect.Effect<Stat | undefined>
   readonly applyPatch: (cwd: string, patch: string) => Effect.Effect<Result>
@@ -276,6 +279,69 @@ const layer = Layer.effect(
       return { text: result.text(), truncated: result.truncated } satisfies Patch
     })
 
+    // kilocode_change start - helpers for comparing two git refs (e.g. HEAD vs HEAD~1)
+    const diffRefs = Effect.fn("Git.diffRefs")(function* (cwd: string, from: string, to: string) {
+      const list = nuls(
+        yield* text(["diff", "--no-ext-diff", "--no-renames", "--name-status", "-z", `${from}..${to}`, "--", "."], {
+          cwd,
+        }),
+      )
+      return list.flatMap((code, idx) => {
+        if (idx % 2 !== 0) return []
+        const file = list[idx + 1]
+        if (!code || !file) return []
+        return [{ file, code, status: kind(code) } satisfies Item]
+      })
+    })
+
+    const statsRefs = Effect.fn("Git.statsRefs")(function* (cwd: string, from: string, to: string) {
+      return nuls(
+        yield* text(["diff", "--no-ext-diff", "--no-renames", "--numstat", "-z", `${from}..${to}`, "--", "."], {
+          cwd,
+        }),
+      ).flatMap((item) => {
+        const a = item.indexOf("\t")
+        const b = item.indexOf("\t", a + 1)
+        if (a === -1 || b === -1) return []
+        const file = item.slice(b + 1)
+        if (!file) return []
+        const adds = item.slice(0, a)
+        const dels = item.slice(a + 1, b)
+        const additions = adds === "-" ? 0 : Number.parseInt(adds || "0", 10)
+        const deletions = dels === "-" ? 0 : Number.parseInt(dels || "0", 10)
+        return [
+          {
+            file,
+            additions: Number.isFinite(additions) ? additions : 0,
+            deletions: Number.isFinite(deletions) ? deletions : 0,
+          } satisfies Stat,
+        ]
+      })
+    })
+
+    const patchAllRefs = Effect.fn("Git.patchAllRefs")(function* (
+      cwd: string,
+      from: string,
+      to: string,
+      options?: PatchOptions,
+    ) {
+      const result = yield* run(
+        [
+          "diff",
+          "--patch",
+          "--no-ext-diff",
+          "--no-renames",
+          `--unified=${options?.context ?? 3}`,
+          `${from}..${to}`,
+          "--",
+          ".",
+        ],
+        { cwd, maxOutputBytes: options?.maxOutputBytes },
+      )
+      return { text: result.text(), truncated: result.truncated } satisfies Patch
+    })
+    // kilocode_change end
+
     const patchUntracked = Effect.fn("Git.patchUntracked")(function* (
       cwd: string,
       file: string,
@@ -336,6 +402,9 @@ const layer = Layer.effect(
       stats,
       patch,
       patchAll,
+      diffRefs, // kilocode_change
+      statsRefs, // kilocode_change
+      patchAllRefs, // kilocode_change
       patchUntracked,
       statUntracked,
       applyPatch,

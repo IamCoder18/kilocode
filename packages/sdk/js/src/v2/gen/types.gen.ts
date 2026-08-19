@@ -11571,7 +11571,7 @@ export type VcsDiffData = {
   query: {
     directory?: string
     workspace?: string
-    mode: "git" | "branch"
+    mode: "git" | "branch" | "last-commit"
     context?: number
   }
   url: "/vcs/diff"

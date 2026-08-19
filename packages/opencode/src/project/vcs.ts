@@ -222,6 +222,42 @@ const diffAgainstRef = Effect.fnUntraced(function* (
   )
 })
 
+// kilocode_change start - diff for the last commit (HEAD vs HEAD~1)
+const lastCommitDiff = Effect.fnUntraced(function* (
+  git: Git.Interface,
+  cwd: string,
+  options?: DiffOptions,
+) {
+  if (!(yield* git.hasHead(cwd))) return []
+  const result = yield* git.run(["rev-parse", "--verify", "HEAD~1"], { cwd })
+  if (result.exitCode !== 0) return []
+  const parent = result.text().trim()
+  if (!parent) return []
+
+  const [list, stats, batchResult] = yield* Effect.all(
+    [
+      git.diffRefs(cwd, parent, "HEAD"),
+      git.statsRefs(cwd, parent, "HEAD"),
+      git.patchAllRefs(cwd, parent, "HEAD", {
+        context: options?.context ?? PATCH_CONTEXT_LINES,
+        maxOutputBytes: MAX_TOTAL_PATCH_BYTES,
+      }),
+    ],
+    { concurrency: 3 },
+  )
+
+  const patches = splitGitPatch(batchResult).reduce((acc, patch, index) => {
+    const file = fileFromPatchChunk(patch) ?? list[index]?.file
+    if (!file) return acc
+    acc.set(file, (acc.get(file) ?? "") + patch)
+    return acc
+  }, new Map<string, string>())
+  const batch = { patches, capped: batchResult.truncated }
+
+  return yield* files(git, cwd, undefined, list, nums(stats), batch, options)
+})
+// kilocode_change end
+
 const track = Effect.fnUntraced(function* (
   git: Git.Interface,
   cwd: string,
@@ -232,7 +268,7 @@ const track = Effect.fnUntraced(function* (
   return yield* diffAgainstRef(git, cwd, ref, options)
 })
 
-export const Mode = Schema.Literals(["git", "branch"])
+export const Mode = Schema.Literals(["git", "branch", "last-commit"]) // kilocode_change
 export type Mode = Schema.Schema.Type<typeof Mode>
 
 export const Event = VcsEvent
@@ -377,6 +413,8 @@ const layer: Layer.Layer<Service, never, Git.Service | EventV2Bridge.Service> = 
         if (mode === "git") {
           return yield* track(git, ctx.directory, (yield* git.hasHead(ctx.directory)) ? "HEAD" : undefined, options)
         }
+
+        if (mode === "last-commit") return yield* lastCommitDiff(git, ctx.directory, options) // kilocode_change
 
         if (!value.root) return []
         if (value.current && value.current === value.root.name) return []
